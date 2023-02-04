@@ -1,0 +1,82 @@
+V1: lane following + intersection
+States:
+Lane Following
+Approaching Intersection
+Waiting at Intersection
+Making Turn (Left, Right, Straight)
+Exiting Intersection
+
+Transitions:
+Lane Following -> Approaching Intersection (Event: Detect Intersection)
+Approaching Intersection -> Waiting at Intersection (Event: Stop at Traffic Sign)
+Waiting at Intersection -> Making Turn (Event: Turn Signal)
+Making Turn -> Exiting Intersection (Event: Completion of Turn)
+Exiting Intersection -> Lane Following (Event: Return to Lane Following)
+
+Events:
+Detect Intersection
+Stop at Traffic Sign
+Turn Signal
+Completion of Turn
+Return to Lane Following
+
+V2: lane following + intersection + pedestrian + overtaking + roundabout
+
+States:
+Lane Following
+Approaching Intersection
+Waiting at Intersection
+Making Turn (Left, Right, Straight)
+Exiting Intersection
+Stopped for Pedestrian
+Overtaking Car
+Roundabout
+
+Transitions:
+Lane Following -> Approaching Intersection (Event: Detect Intersection)
+Approaching Intersection -> Waiting at Intersection (Event: Stop at Traffic Sign)
+Waiting at Intersection -> Making Turn (Event: Turn Signal)
+Making Turn -> Exiting Intersection (Event: Completion of Turn)
+Exiting Intersection -> Lane Following (Event: Return to Lane Following)
+Lane Following/Approaching Intersection/Waiting at Intersection/Making Turn/Exiting Intersection -> Stopped for Pedestrian (Event: Detect Pedestrian)
+Stopped for Pedestrian -> Lane Following (Event: Clear Path)
+Lane Following -> overtaking Car (Event: Detect Static Car in Lane)
+overtaking Car -> Lane Following (Event: Completion of overtaking)
+Lane Following -> Roundabout (Event: Detect Roundabout)
+Roundabout -> Lane Following (Event: Exit Roundabout)
+
+Events:
+Detect Intersection
+Stop at Traffic Sign
+Turn Signal
+Completion of Turn
+Return to Lane Following
+Detect Pedestrian
+Clear Path
+Detect Static Car in Lane
+Completion of overtaking
+Detect Roundabout
+Exit Roundabout
+
+Actions:
+Slow down and stop at traffic sign
+Check turn signal
+Make left turn, right turn, or go straight
+Return to lane following speed and behavior
+Stop immediately and wait for pedestrian to clear path
+Temporarily drive to the left side (if line is dotted) to overtake the static car
+Use alternative approach (e.g. GPS, map data, etc.) to control the car until it exits the roundabout
+
+Initial State: Lane Following
+
+Final States: Exiting Intersection (Once turn is completed and the car returns to lane following behavior), Stopped for Pedestrian (if pedestrian is detected and path has not cleared), Lane Following (once the overtaking is completed), or Lane Following (once the car exits the roundabout)
+
+Actions:
+Slow down and stop at traffic sign
+Check turn signal
+Make left turn, right turn, or go straight
+Return to lane following speed and behavior
+
+Initial State: Lane Following
+
+Final States: Exiting Intersection (Once turn is completed and the car returns to lane following behavior)

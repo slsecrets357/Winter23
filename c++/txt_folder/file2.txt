@@ -1,0 +1,5 @@
+My dear C++ class.
+I hope that we like this assignment.
+simon
+alex
+li
