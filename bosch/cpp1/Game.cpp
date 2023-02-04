@@ -1,7 +1,0 @@
-class Game {
-private:
-    // Private variables and functions
-
-public:
-    // Public variables and functions
-};
