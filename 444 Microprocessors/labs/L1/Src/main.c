@@ -64,8 +64,10 @@ static void MX_GPIO_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 int kalmanfilter(float* InputArray, float* OutputArray, kstate* ks, uint32_t length);
-extern int kalmanfilter_asm(kstate* ks, float meas);
+extern int kalmanfilter_asm2(kstate* ks, float meas);
 int kalmanfilter_DSP(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
+float stddev(float *array, int N);
+float* statistics(float* InputArray, float* OutputArray, uint32_t N);
 /* USER CODE END 0 */
 
 /**
@@ -98,10 +100,8 @@ int main(void)
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
   kstate kalman_state = { .k =0.0, .p=0.1, .q=0.1, .r=0.1, .x =5.0};
-  float *InputArray;
-  InputArray = (float*)malloc(5*sizeof(float));
-  InputArray = (float[]) {0,1,2,3,4};
-  float *OutputArray;
+  float InputArray[5] = {0,1,2,3,4};
+  float OutputArray[5];
   uint32_t length = 7;
   float meas = 3.57;
   /* USER CODE END 2 */
@@ -115,7 +115,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  ITM_Port32(31) =1;
 	  //assembly
-	  kalmanfilter_asm(&kalman_state, meas);
+	  kalmanfilter_asm2(&kalman_state, meas);
 	  ITM_Port32(31) =2;
 	  //c
 	  kalmanfilter(&InputArray, &OutputArray, &kalman_state, length);
