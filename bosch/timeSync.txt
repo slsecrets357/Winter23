@@ -1,0 +1,31 @@
+import rospy
+from message_filters import TimeSynchronizer
+from std_msgs.msg import String
+from my_package.msg import Drivable,Lane,Sign
+
+def callback(lane, sign, drivable):
+    # implement state machine here
+    # Ex:Perform image processing tasks
+    # Ex:Compute the steering angle
+    # Ex:Publish the steering angle to the /automobile/command topic
+    pass
+
+if __name__ == '__main__':
+    rospy.init_node('main_node')
+    # Subscribe to topics
+    #drivable_sub = rospy.Subscriber('/drivable', Image, queue_size=10)
+    #lane_sub = rospy.Subscriber('/lane', Lane, queue_size=10)
+    #sign_sub = rospy.Subscriber('/sign', Sign, queue_size=10)
+	
+    drivable_sub = message_filters.Subscriber('/drivable', Image)
+    lane_sub = message_filters.Subscriber('/lane', Lane)
+    sign_sub = message_filters.Subscriber('/sign', Sign)
+
+    # Create an instance of TimeSynchronizer
+    ts = TimeSynchronizer([image_sub, lane_sub, sign_sub], 10)
+    ts.registerCallback(callback)
+
+    rate = rospy.Rate(10) # 10 Hz
+    while not rospy.is_shutdown():
+        rospy.spin()
+        rate.sleep()

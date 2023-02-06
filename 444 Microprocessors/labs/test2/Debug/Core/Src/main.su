@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 ../Core/Src/main.c:58:5:main	40	static,ignoring_inline_asm
 ../Core/Src/main.c:77:6:System_Clock	96	static
+=======
+../Core/Src/main.c:58:5:main	40	static,ignoring_inline_asm
+../Core/Src/main.c:77:6:System_Clock	96	static
+>>>>>>> 57cca87149b6a2c58469570993efa5876b986ef6

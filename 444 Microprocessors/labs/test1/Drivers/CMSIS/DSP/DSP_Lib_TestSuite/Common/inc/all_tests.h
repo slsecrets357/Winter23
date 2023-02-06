@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #ifndef _ALL_TESTS_H_
 #define _ALL_TESTS_H_
 
@@ -7,3 +8,14 @@
 JTEST_DECLARE_GROUP(all_tests);
 
 #endif /* _ALL_TESTS_H_ */
+=======
+#ifndef _ALL_TESTS_H_
+#define _ALL_TESTS_H_
+
+/*--------------------------------------------------------------------------------*/
+/* Declare Test Groups */
+/*--------------------------------------------------------------------------------*/
+JTEST_DECLARE_GROUP(all_tests);
+
+#endif /* _ALL_TESTS_H_ */
+>>>>>>> 57cca87149b6a2c58469570993efa5876b986ef6
