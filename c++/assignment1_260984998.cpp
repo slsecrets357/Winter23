@@ -24,18 +24,18 @@ int main()
     std::string str3 = "World";
     std::string str4 = "Hello World";
     bool result = word_diff(str1, str2); // False
-    bool result = word_diff(str1, str3); // False
-    bool result = word_diff(str1, str4); // True
+    bool result2 = word_diff(str1, str3); // False
+    bool result3 = word_diff(str1, str4); // True
     // Q2
     std::string file1 = "./txt_folder/file1.txt";
     std::string file2 = "./txt_folder/file2.txt";
-    bool result = classical_file_diff(file1, file2); // False
+    bool result4 = classical_file_diff(file1, file2); // False
     // Q3
     std::string mystr = "I love this assignment";
     std::size_t h1 = hash_it (mystr);
     std::cout << h1 << std::endl;
     // Q4
-    bool result = enhanced_file_diff(file1, file2); // False
+    bool result5 = enhanced_file_diff(file1, file2); // False
     // Q5
     list_mismatched_lines(file1, file2); // This should print to the screen the mismatched lines
     // Q6
@@ -93,6 +93,7 @@ void list_mismatched_lines(std::string file1, std::string file2){
         }
     }
 }
+
 void list_mismatched_words(std::string file1, std::string file2){
     // Open the first file using an input file stream
     std::ifstream f1(file1);
