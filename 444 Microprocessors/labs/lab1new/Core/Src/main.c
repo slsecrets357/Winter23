@@ -24,6 +24,7 @@
 #include "arm_math.h"
 #include "utility.h"
 #define ARM_MATH_CM4
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +43,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -50,17 +52,30 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+
+PUTCHAR_PROTOTYPE
+{
+	HAL_UART_Transmit(&huart2, *(uint8_t *)&ch, 1, HAL_MAX_DELAY);
+	return ch;
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 int kalmanfilter(float* InputArray, float* OutputArray, kstate* ks, uint32_t length);
 extern int kalmanfilter_asm2(kstate* ks, float meas);
+extern int kalmanfilter_asm(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
 int kalmanfilter_DSP(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
 int kf_asm(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
-float stddev(float *array, int N);
+float stddev(float* vec, float* output, int N);
 float* statistics(float* InputArray, float* OutputArray, uint32_t N);
 /* USER CODE END 0 */
 
@@ -71,7 +86,7 @@ float* statistics(float* InputArray, float* OutputArray, uint32_t N);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  printf("hello");
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -92,12 +107,40 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   kstate kalman_state = { .k =0.0, .p=0.1, .q=0.1, .r=0.1, .x =5.0};
-  float InputArray[5] = {0,1,2,3,4};
-  float OutputArray[5];
-  uint32_t length = 5;
+  float InputArray1[5] = {0,1,2,3,4};
   float meas = 3.57;
+  float InputArray[] = {10.4915760032, 10.1349974709, 9.53992591829, 9.60311878706,
+  					10.4858891793, 10.1104642352, 9.51066931906, 9.75755656493,
+  					9.82154078273, 10.2906541933, 10.4861328671, 9.57321181356,
+  					9.70882714139, 10.4359069357, 9.70644021369, 10.2709894039,
+  					10.0823149505, 10.2954563443, 9.57130449017, 9.66832136479,
+  					10.4521677502, 10.4287240667, 10.1833650752, 10.0066049721,
+  					10.3279461634, 10.4767210803, 10.3790964606, 10.1937408814,
+  					10.0318963522, 10.4939180917, 10.2381858895, 9.59703103024,
+  					9.62757986516, 10.1816981174, 9.65703773168, 10.3905666599,
+  					10.0941977598, 9.93515274393, 9.71017053437, 10.0303874259,
+  					10.0173504397, 9.69022731474, 9.73902896102, 9.52524419732,
+  					10.3270730526, 9.54695650657, 10.3573960542, 9.88773266876,
+  					10.1685038683, 10.1683694089, 9.88406620159, 10.3290065898,
+  					10.2547227265, 10.4733422906, 10.0133952458, 10.4205693583,
+  					9.71335255372, 9.89061396699, 10.1652744131, 10.2580948608,
+  					10.3465431058, 9.98446410493, 9.79376005657, 10.202518901,
+  					9.83867150985, 9.89532986869, 10.2885062658, 9.97748768804,
+  					10.0403923759, 10.1538911808, 9.78303667556, 9.72420149909,
+  					9.59117495073, 10.1716116012, 10.2015818969, 9.90650056596,
+  					10.3251329834, 10.4550120431, 10.4925749165, 10.1548177178,
+  					9.60547133785, 10.4644672766, 10.2326496615, 10.2279703226,
+  					10.3535284606, 10.2437410625, 10.3851531317, 9.90784804928,
+  					9.98208344925, 9.52778805729, 9.69323876912, 9.92987312087,
+  					9.73938925207, 9.60543743477, 9.79600805462, 10.4950988486,
+  					10.2814361401, 9.7985283333, 9.6287888922, 10.4491538991,
+  					9.5799256668};
+  uint32_t length = (uint32_t) (sizeof(InputArray)/sizeof(InputArray[0]));
+  float OutputArray[((int)(sizeof(InputArray)/sizeof(InputArray[0])))];
+  float dev;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -107,16 +150,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  printf("hello");
 	  ITM_Port32(31) =1;
 	  //assembly
 //	  kalmanfilter_asm2(&kalman_state, meas);
-	  kf_asm(&InputArray, &OutputArray, &kalman_state, length);
-//	  ITM_Port32(31) =2;
+	  kalmanfilter_asm(&InputArray, &OutputArray, &kalman_state, length);
+	  dev = stddev(&InputArray, &OutputArray, length);
+	  ITM_Port32(31) =2;
 //	  //c
 //	  kalmanfilter(&InputArray, &OutputArray, &kalman_state, length);
 	  ITM_Port32(31) = 3;
 	  //dsp
-//	  kalmanfilter_DSP(&InputArray, &OutputArray, &kalman_state, length);
+	  //kalmanfilter_DSP(&InputArray, &OutputArray, &kalman_state, length);
   }
   /* USER CODE END 3 */
 }
@@ -169,6 +214,54 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
 }
 
 /**

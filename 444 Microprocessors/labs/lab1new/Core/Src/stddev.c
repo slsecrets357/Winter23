@@ -7,12 +7,12 @@
 #include <math.h>
 #include "utility.h"
 
-float stddev(float *vec, int N) {
+float stddev(float *vec, float *output, int N) {
   float sum = 0.0, mean, variance = 0.0, dev;
 
   // Compute the mean of the input vector
   for (int i = 0; i < N; i++) {
-    sum += vec[i];
+    sum += (output[i]-vec[i]);
   }
   mean = sum / N;
 

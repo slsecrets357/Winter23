@@ -61,7 +61,7 @@ main-build: lab1new.elf secondary-outputs
 
 # Tool invocations
 lab1new.elf lab1new.map: $(OBJS) $(USER_OBJS) /home/simonli/Winter23/444\ Microprocessors/labs/lab1new/STM32L4S5VITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "lab1new.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/simonli/Winter23/444 Microprocessors/labs/lab1new/STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="lab1new.map" -Wl,--gc-sections -static -L"/home/simonli/Winter23/444 Microprocessors/labs/lab1new/lib" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "lab1new.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/simonli/Winter23/444 Microprocessors/labs/lab1new/STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="lab1new.map" -Wl,--gc-sections -static -L"/home/simonli/Winter23/444 Microprocessors/labs/lab1new/lib" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

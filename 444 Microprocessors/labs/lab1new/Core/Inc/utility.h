@@ -18,7 +18,7 @@ typedef struct {
 } kstate;
 
 float* statistics(float* InputArray, float* OutputArray, uint32_t N);
-float stddev(float *array, int N);
+float stddev(float *vec, float *output, int N);
 int kf_asm(float* InputArray, float* OutputArray, kstate* ks, uint32_t length);
 int kalmanfilter(float* InputArray, float* OutputArray, kstate* ks, uint32_t length);
 extern int kalmanfilter_asm2(kstate* ks, float meas);
