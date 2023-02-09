@@ -54,7 +54,6 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
 #ifdef __GNUC__
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 #else
@@ -63,8 +62,8 @@ static void MX_USART2_UART_Init(void);
 
 PUTCHAR_PROTOTYPE
 {
-	HAL_UART_Transmit(&huart2, *(uint8_t *)&ch, 1, HAL_MAX_DELAY);
-	return ch;
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return ch;
 }
 /* USER CODE END PFP */
 
@@ -74,9 +73,9 @@ int kalmanfilter(float* InputArray, float* OutputArray, kstate* ks, uint32_t len
 extern int kalmanfilter_asm2(kstate* ks, float meas);
 extern int kalmanfilter_asm(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
 int kalmanfilter_DSP(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
-int kf_asm(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
 float stddev(float* vec, float* output, int N);
-float* statistics(float* InputArray, float* OutputArray, uint32_t N);
+//float std(float* input, uint32_t length);
+int statistics(float* InputArray, float* OutputArray, uint32_t length, float* corr, float* conv);
 /* USER CODE END 0 */
 
 /**
@@ -141,6 +140,11 @@ int main(void)
   uint32_t length = (uint32_t) (sizeof(InputArray)/sizeof(InputArray[0]));
   float OutputArray[((int)(sizeof(InputArray)/sizeof(InputArray[0])))];
   float dev;
+  float dev1;
+  float convolutionDSP[(int)(2*length-1)];
+  float correlationDSP[(int)(2*length-1)];
+  float conv[(int)(2*length-1)];
+  float corr[(int)(2*length-1)];
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -155,13 +159,18 @@ int main(void)
 	  //assembly
 //	  kalmanfilter_asm2(&kalman_state, meas);
 	  kalmanfilter_asm(&InputArray, &OutputArray, &kalman_state, length);
-	  dev = stddev(&InputArray, &OutputArray, length);
-	  ITM_Port32(31) =2;
-//	  //c
 //	  kalmanfilter(&InputArray, &OutputArray, &kalman_state, length);
+//	  kalmanfilter_DSP(&InputArray, &OutputArray, &kalman_state, length);
+	  ITM_Port32(31) =2;
+
+	  dev = stddev(&InputArray, &OutputArray, length);
+	  arm_conv_f32(&InputArray, length, &OutputArray, length, convolutionDSP);
+	  arm_correlate_f32(&InputArray, length, &OutputArray, length, correlationDSP);
+	  statistics(&InputArray, &OutputArray, length, corr, conv);
+
 	  ITM_Port32(31) = 3;
-	  //dsp
-	  //kalmanfilter_DSP(&InputArray, &OutputArray, &kalman_state, length);
+
+
   }
   /* USER CODE END 3 */
 }

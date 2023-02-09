@@ -17,7 +17,7 @@
 */
 
 kalmanfilter_asm:
-	push {r4}
+	push {r4,r5}
 	sub R3, #1
 loop:
 	vldr.f32 s2, [r2] //q
@@ -55,21 +55,29 @@ loop:
 	mrs r4,APSR   // save MCU flags
 	vmrs APSR_nzcv, FPSCR //move the value of FPSCR to the APSR register
     bvs overflow //branch to overflow if the overflow bit in APSR is set
-
+	//vmrs r5, FPSCR
+	//tst r5, #8
+	//beq underflow
+	//tst r5, #2
+	//beq division_by_0
 	vstr.f32 s2, [r2, #12]
 	msr APSR_nzcvq, r4  // restore MCU flags
 	cmp r3, #0
 	sub r3, #1
 	bgt loop
-	pop {r4}
+	pop {r4,r5}
 	mov r0, #0
 	bx lr
 overflow:
-	pop {r4}
+	pop {r4,r5}
 	mov r0, #-1
 	bx lr
 division_by_0:
-	pop {r4}
+	pop {r4,r5}
+	mov r0, #-1
+	bx lr
+underflow:
+	pop {r4,r5}
 	mov r0, #-1
 	bx lr
 

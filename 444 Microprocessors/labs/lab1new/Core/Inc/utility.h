@@ -16,15 +16,12 @@ typedef struct {
     float p; //estimation error covariance
     float k; // adaptive Kalman filter gain.
 } kstate;
-
-float* statistics(float* InputArray, float* OutputArray, uint32_t N);
+int statistics(float* InputArray, float* OutputArray, uint32_t length, float* corr, float* conv);
 float stddev(float *vec, float *output, int N);
-int kf_asm(float* InputArray, float* OutputArray, kstate* ks, uint32_t length);
 int kalmanfilter(float* InputArray, float* OutputArray, kstate* ks, uint32_t length);
 extern int kalmanfilter_asm2(kstate* ks, float meas);
 extern int kalmanfilter_asm(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
 int kalmanfilter_DSP(float* InputArray, float* OutputArray, kstate* ks, uint32_t Length);
-
 #endif /* INC_UTILITY_H_ */
 
 
