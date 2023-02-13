@@ -140,7 +140,7 @@ int main(void)
   uint32_t length = (uint32_t) (sizeof(InputArray)/sizeof(InputArray[0]));
   float OutputArray[((int)(sizeof(InputArray)/sizeof(InputArray[0])))];
   float dev;
-  float dev1;
+  float32_t dev1;
   float convolutionDSP[(int)(2*length-1)];
   float correlationDSP[(int)(2*length-1)];
   float conv[(int)(2*length-1)];
@@ -155,21 +155,22 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  printf("hello");
-	  ITM_Port32(31) =1;
+
 	  //assembly
 //	  kalmanfilter_asm2(&kalman_state, meas);
 	  kalmanfilter_asm(&InputArray, &OutputArray, &kalman_state, length);
 //	  kalmanfilter(&InputArray, &OutputArray, &kalman_state, length);
 //	  kalmanfilter_DSP(&InputArray, &OutputArray, &kalman_state, length);
-	  ITM_Port32(31) =2;
 
+	  ITM_Port32(31) =1;
+//	  arm_conv_f32(&InputArray, length, &OutputArray, length, convolutionDSP);
+//	  arm_correlate_f32(&InputArray, length, &OutputArray, length, correlationDSP);
 	  dev = stddev(&InputArray, &OutputArray, length);
-	  arm_conv_f32(&InputArray, length, &OutputArray, length, convolutionDSP);
-	  arm_correlate_f32(&InputArray, length, &OutputArray, length, correlationDSP);
-	  statistics(&InputArray, &OutputArray, length, corr, conv);
-
+	  ITM_Port32(31) =2;
+//	  statistics(&InputArray, &OutputArray, length, corr, conv);
+	  arm_std_f32(&InputArray, length, &dev1);
 	  ITM_Port32(31) = 3;
-
+	  int aaa = 3;
 
   }
   /* USER CODE END 3 */

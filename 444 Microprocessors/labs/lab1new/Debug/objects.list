@@ -2,7 +2,6 @@
 "./Core/Src/kalmanfilter.o"
 "./Core/Src/kalmanfilter_asm.o"
 "./Core/Src/kalmanfilter_asm2.o"
-"./Core/Src/kf_asm.o"
 "./Core/Src/main.o"
 "./Core/Src/statistics.o"
 "./Core/Src/stddev.o"
