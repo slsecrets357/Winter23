@@ -11,7 +11,6 @@ S_SRCS += \
 C_SRCS += \
 ../Core/Src/Kalmanfilter_DSP.c \
 ../Core/Src/kalmanfilter.c \
-../Core/Src/kf_asm.c \
 ../Core/Src/main.c \
 ../Core/Src/statistics.c \
 ../Core/Src/stddev.c \
@@ -26,7 +25,6 @@ OBJS += \
 ./Core/Src/kalmanfilter.o \
 ./Core/Src/kalmanfilter_asm.o \
 ./Core/Src/kalmanfilter_asm2.o \
-./Core/Src/kf_asm.o \
 ./Core/Src/main.o \
 ./Core/Src/statistics.o \
 ./Core/Src/stddev.o \
@@ -43,7 +41,6 @@ S_DEPS += \
 C_DEPS += \
 ./Core/Src/Kalmanfilter_DSP.d \
 ./Core/Src/kalmanfilter.d \
-./Core/Src/kf_asm.d \
 ./Core/Src/main.d \
 ./Core/Src/statistics.d \
 ./Core/Src/stddev.d \
@@ -63,7 +60,7 @@ Core/Src/%.o: ../Core/Src/%.s Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/Kalmanfilter_DSP.d ./Core/Src/Kalmanfilter_DSP.o ./Core/Src/Kalmanfilter_DSP.su ./Core/Src/kalmanfilter.d ./Core/Src/kalmanfilter.o ./Core/Src/kalmanfilter.su ./Core/Src/kalmanfilter_asm.d ./Core/Src/kalmanfilter_asm.o ./Core/Src/kalmanfilter_asm2.d ./Core/Src/kalmanfilter_asm2.o ./Core/Src/kf_asm.d ./Core/Src/kf_asm.o ./Core/Src/kf_asm.su ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/statistics.d ./Core/Src/statistics.o ./Core/Src/statistics.su ./Core/Src/stddev.d ./Core/Src/stddev.o ./Core/Src/stddev.su ./Core/Src/stm32l4xx_hal_msp.d ./Core/Src/stm32l4xx_hal_msp.o ./Core/Src/stm32l4xx_hal_msp.su ./Core/Src/stm32l4xx_it.d ./Core/Src/stm32l4xx_it.o ./Core/Src/stm32l4xx_it.su ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l4xx.d ./Core/Src/system_stm32l4xx.o ./Core/Src/system_stm32l4xx.su
+	-$(RM) ./Core/Src/Kalmanfilter_DSP.d ./Core/Src/Kalmanfilter_DSP.o ./Core/Src/Kalmanfilter_DSP.su ./Core/Src/kalmanfilter.d ./Core/Src/kalmanfilter.o ./Core/Src/kalmanfilter.su ./Core/Src/kalmanfilter_asm.d ./Core/Src/kalmanfilter_asm.o ./Core/Src/kalmanfilter_asm2.d ./Core/Src/kalmanfilter_asm2.o ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/statistics.d ./Core/Src/statistics.o ./Core/Src/statistics.su ./Core/Src/stddev.d ./Core/Src/stddev.o ./Core/Src/stddev.su ./Core/Src/stm32l4xx_hal_msp.d ./Core/Src/stm32l4xx_hal_msp.o ./Core/Src/stm32l4xx_hal_msp.su ./Core/Src/stm32l4xx_it.d ./Core/Src/stm32l4xx_it.o ./Core/Src/stm32l4xx_it.su ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l4xx.d ./Core/Src/system_stm32l4xx.o ./Core/Src/system_stm32l4xx.su
 
 .PHONY: clean-Core-2f-Src
 
