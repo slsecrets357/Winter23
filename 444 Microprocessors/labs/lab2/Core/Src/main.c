@@ -31,6 +31,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define VREFINT ((uint16_t*)((uint32_t) 0x1FFF75AA))
+#define TS_CAL1 ((uint16_t*)((uint32_t) 0x1FFF75A8))
+#define TS_CAL2 ((uint16_t*)((uint32_t) 0x1FFF75CA))
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -99,12 +102,47 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_ADC1_Init();
+//  MX_ADC1_Init();
+  ADC_ChannelConfTypeDef sConfig = {0};
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc1.Init.OversamplingMode = DISABLE;
+  hadc1.Init.DFSDMConfig = ADC_DFSDM_MODE_ENABLE;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
+//  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   char status = 0;
+  char prev = 0;
   uint16_t adcValue;
   float voltage;
+  float temperature;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -114,29 +152,45 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  // Read the reference voltage value from ADC1
-//	  HAL_ADC_Start(&hadc1);
-//	  HAL_ADC_PollForConversion(&hadc1,100);
-//	  adcValue = HAL_ADC_GetValue(&hadc1);
-//	  HAL_ADC_Stop(&hadc1);
-//	  // Convert the ADC value to a voltage value
-//	  voltage = (float)adcValue*3.3/4095;
-//	  printf("reference Voltage: %.2f V\n", voltage);
 
 	  status = HAL_GPIO_ReadPin(myButton_GPIO_Port, myButton_Pin);
 
-	  if (status==0) {
-		  HAL_Delay(50);
-		  status = HAL_GPIO_ReadPin(myButton_GPIO_Port, myButton_Pin);
-		  if (status == 0){
-			  static int led2_status = 0;
-			  led2_status = !led2_status;
-			  if(led2_status){
-				  HAL_GPIO_WritePin(myLed2_GPIO_Port, myLed2_Pin, GPIO_PIN_SET);
-			  } else {
-				  HAL_GPIO_WritePin(myLed2_GPIO_Port, myLed2_Pin, GPIO_PIN_RESET);
+	  if(status != prev){ // button was pressed or released
+		  if(status == GPIO_PIN_RESET){ // button was pressed SET=1, RESET=0
+			  if(HAL_GPIO_ReadPin(myLed2_GPIO_Port, myLed2_Pin) == GPIO_PIN_SET){ // light is on
+				  HAL_GPIO_WritePin(myLed2_GPIO_Port, myLed2_Pin, GPIO_PIN_RESET); // turn light off
+				  // Read the reference voltage value from ADC1
+				  sConfig.Channel = ADC_CHANNEL_VREFINT;
+				  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+				    {
+				      Error_Handler();
+				    }
+				  	  HAL_ADC_Start(&hadc1);
+
+				  	  HAL_ADC_PollForConversion(&hadc1,100);
+				  	  adcValue = HAL_ADC_GetValue(&hadc1);
+				  	  HAL_ADC_Stop(&hadc1);
+				  	  // Convert the ADC value to a voltage value
+				  	  voltage = (float)((*VREFINT)*3.0/adcValue);
+				  	  printf("reference Voltage: %.2f V\n", voltage);
+			  }
+			  else{ // light is off
+				  HAL_GPIO_WritePin(myLed2_GPIO_Port, myLed2_Pin, GPIO_PIN_SET); // turn light on
+				  // Read the temperature from ADC1
+				  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+				  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+				  {
+				  	Error_Handler();
+				  }
+				  HAL_ADC_Start(&hadc1);
+				    HAL_ADC_PollForConversion(&hadc1, 100);
+				    adcValue = HAL_ADC_GetValue(&hadc1);
+				    HAL_ADC_Stop(&hadc1);
+				    temperature = 100.0/((*TS_CAL2)-(*TS_CAL1))*(adcValue-(*TS_CAL1))+30.0;
+				    printf("temperature: %.2f C\n", temperature);
 			  }
 		  }
+		  prev = status; // update previous status
 	  }
   }
 
@@ -237,8 +291,9 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_VREFINT;
+//  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -322,7 +377,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : myButton_Pin */
   GPIO_InitStruct.Pin = myButton_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(myButton_GPIO_Port, &GPIO_InitStruct);
 
