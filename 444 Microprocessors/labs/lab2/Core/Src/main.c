@@ -186,12 +186,13 @@ int main(void)
 				    HAL_ADC_PollForConversion(&hadc1, 100);
 				    adcValue = HAL_ADC_GetValue(&hadc1);
 				    HAL_ADC_Stop(&hadc1);
-				    temperature = 100.0/((*TS_CAL2)-(*TS_CAL1))*(adcValue-(*TS_CAL1))+30.0;
+				    temperature = 100.0/((*TS_CAL2)-(*TS_CAL1))*(adcValue*3.5/3.0-(*TS_CAL1))+30.0;
 				    printf("temperature: %.2f C\n", temperature);
 			  }
 		  }
 		  prev = status; // update previous status
 	  }
+
   }
 
   /* USER CODE END 3 */
