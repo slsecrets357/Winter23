@@ -131,7 +131,7 @@ def mse_prime(y_true, y_pred):
     # print("mse prime: ytrue ", y_true.shape, "\n", y_true)
     # a = (y_pred-y_true) 
     # print("after: \n", a.shape, "\n", a )
-    return 2*(y_pred-y_true);
+    return 2*(y_pred-y_true)
 
 # def cross_entropy(y_true, y_pred):
 #     epsilon = 1e-12  
@@ -140,12 +140,25 @@ def mse_prime(y_true, y_pred):
 # def cross_entropy_prime(y_true, y_pred, epsilon = 1e-12):
 #     y_pred = np.clip(y_pred, epsilon, 1.0 - epsilon) #add small value to avoid division by 0
 #     return -y_true/y_pred
-def cross_entropy(y_true,y_pred): #with softmax
+def cross_entropy_with_sm(y_true,y_pred): #with softmax
+    '''
+    y_true is one-hot encoded vector
+    calculates cross entropy loss by first applying softmax to y_pred
+    then calculates cross entropy loss of y_true and y_pred
+    '''
+    # epsilon = 1e-12  
+    # y_pred = np.clip(y_pred, epsilon, 1.0 - epsilon)
+    # p = softmax(y_pred)
+    # return -np.mean(np.sum(y_true * np.log(p), axis=1)) 
     p = softmax(y_pred)
     log_likelihood = -np.log(np.sum(y_true*p, axis=1))
     loss = np.sum(log_likelihood) / y_true.shape[0]
     return loss
-def cross_entropy_prime(y_true,y_pred): 
+def cross_entropy_prime_with_sm(y_true,y_pred): 
+    '''
+    derivative of cross entropy loss with softmax is softmax(y_pred) - y_true
+    gradient is calculated by dividing by number of samples
+    '''
     grad = softmax(y_pred)
     grad -= y_true
     grad = grad/y_true.shape[0]
@@ -248,7 +261,7 @@ class Network:
           print('epoch %d/%d   loss=%f ' % (t+1, num_epochs, error))
           
 net1 = Network()
-net1.change_loss(cross_entropy, cross_entropy_prime)
+net1.change_loss(cross_entropy_with_sm, cross_entropy_prime_with_sm)
 net1.add(FCL(32*32*3, 10))
 #net1.add(ActivationLayer(relu, relu_prime))
 # net1.add(FCL(50, 50))
