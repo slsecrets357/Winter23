@@ -102,7 +102,7 @@ void loadVersion(Version*& head, int versionNumber){
     }
 }
 
-void printVersions(void){
+void printVersions(Version* head){
     /* 
     print all the available versions (shown example only has one so far) to the screen. This
     function is handy for debugging. From the menu press ‘p’. Example output:
@@ -127,5 +127,7 @@ void printVersions(void){
         current = current->next;
     }
 }
+
+
 
 

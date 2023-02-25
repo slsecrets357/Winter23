@@ -46,6 +46,13 @@ void * evenWorker(void * arg){ // evenWorker
 	struct tracker * output = arg; // typecast the void pointer to a struct pointer
 	
 	while(pos < SIZE){
+		// in this while loop, the evenWorker thread will go over all the elements of the array
+		// and add the odd elements to the sum. 
+		// The oddWorker thread will add the even elements to the sum.
+		// The two threads will do this in an alternating fashion.
+		// basically, after the evenWorker thread has added all the odd elements to the sum, 
+		// it will signal the oddWorker thread to add the even elements to the sum and unlock the mutex so that the oddWorker thread can access the critical section.
+		// then the oddWorker thread will add the even elements to the sum and signal the evenWorker thread to add the odd elements to the sum and unlock the mutex so that the evenWorker thread can access the critical section.
 		pthread_mutex_lock(&lock); // lock the mutex so that the other thread cannot access the critical section
 		if(pos%2==0){
 			printf("Tid %ld even index %d element: %d\n", pthread_self(), pos, output->arr[pos]);
