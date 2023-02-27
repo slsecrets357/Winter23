@@ -30,33 +30,37 @@ struct Version {
     std::string hashValue;  // hash value of the file content
     Version* next;      // pointer to the next version
 };
+//global variables
+int versionNumber = 1; // version number
+int loadVersionNumber = 1;
+Version* head = nullptr; // head of the linked list
+
 // Function to add a new version of the file
-int add(Version*& head, std::string filename, int versionNumber);
+int add(std::string filename);
 
 // Function to remove a version of the file
-void removeVersion(Version*& head, int versionNumber);
+void removeVersion(int versionNumber);
 
 // Function to load a specific version and make it the current active one
-void loadVersion(Version*& head, int versionNumber);
+void loadVersion(int version);
 
 // Function to print the list of all versions of the file
-void print(Version* head);
+void print();
 
 // Function to compare any two versions of the file
-void compareVersions(Version* head, int version1, int version2);
+void compareVersions(int version1, int version2);
 
 // Function to search and display all versions having a specific keyword
-void searchVersions(Version* head, std::string keyword);
+void searchVersions(std::string keyword);
 
 // Function to generate a hash value for a given string
 std::string generateHash(std::string content);
 
 // main
 int main(){
-    Version* head = nullptr; // head of the linked list
+    // Version* head = nullptr; // head of the linked list
     std::string filename; // name of the file
     char choice; // user choice
-    int versionNumber; // version number
     std::string keyword; // keyword to search for
     std::cout << "Welcome to the Comp322 file versioning system!" << std::endl;
     std::cout << "To add the content of your file to version control press 'a'" << std::endl;
@@ -73,35 +77,34 @@ int main(){
                 std::cout << "Please enter the content of the file:" << std::endl;
                 std::cin.ignore(); // ignore the newline character which corresponds to the enter key
                 std::getline(std::cin, filename);
-                int err = add(head, filename, versionNumber);
-                if (err == 0) versionNumber++;
+                add(filename);
                 break;
             case 'r':
                 std::cout << "Please enter the version number to remove:" << std::endl;
                 std::cin >> versionNumber;
-                removeVersion(head, versionNumber);
+                removeVersion(versionNumber);
                 break;
             case 'l':
-                std::cout << "Please enter the version number to load:" << std::endl;
-                std::cin >> versionNumber;
-                loadVersion(head, versionNumber);
+                std::cout << "Which version would you like to load?" << std::endl;
+                std::cin >> loadVersionNumber;
+                loadVersion(loadVersionNumber);
                 break;
             case 'p':
-                print(head);
+                print();
                 break;
             case 'c':
-                std::cout << "Please enter the first version number:" << std::endl;
+                std::cout << "Please enter the number of the first version to compare: " << std::endl;
                 std::cin >> versionNumber;
                 int versionNumber2;
-                std::cout << "Please enter the second version number:" << std::endl;
+                std::cout << "Please enter the number of the second version to compare: " << std::endl;
                 std::cin >> versionNumber2;
-                compareVersions(head, versionNumber, versionNumber2);
+                compareVersions(versionNumber, versionNumber2);
                 break;
             case 's':
                 std::cout << "Please enter the keyword to search for:" << std::endl;
                 std::cin.ignore();
                 std::getline(std::cin, keyword);
-                searchVersions(head, keyword);
+                searchVersions(keyword);
                 break;
             case 'e':
                 std::cout << "Exiting the program..." << std::endl;
@@ -115,7 +118,7 @@ int main(){
 }
 
 // function definitions
-int add(Version*& head, std::string filename, int versionNumber){
+int add(std::string filename){
     // Version*& head is a reference to a pointer to a Version object
     /*
     If you try to add the same content twice or if you don’t make any modification to your file and
@@ -125,6 +128,11 @@ int add(Version*& head, std::string filename, int versionNumber){
     version.
     */
     std::ifstream file(filename); // open the file
+    // check if file exists
+    if (!file.is_open()){ // check if the file is open
+        std::cout << "Error: file could not be opened." << std::endl;
+        return -1;
+    }
     std::string content; // content of the file
     std::string line; // line of the file
     while (std::getline(file, line)) { // read the file line by line
@@ -135,7 +143,7 @@ int add(Version*& head, std::string filename, int versionNumber){
         return -1;
     }
     Version* newVersion = new Version; // new Version is a pointer to a Version object
-    newVersion->versionNumber = versionNumber; // initialize the version number to 1
+    newVersion->versionNumber = versionNumber++; // initialize the version number to 1
     newVersion->timestamp = std::time(0); // initialize the timestamp to the current time
     newVersion->content = content; // initialize the content to the given content
     newVersion->hashValue = generateHash(content); // initialize the hash value to the hash of the given content
@@ -150,11 +158,11 @@ std::string generateHash(std::string content) {
     return std::to_string(std::hash<std::string>{}(content));
 }
 
-void removeVersion(Version*& head, int versionNumber){
+void removeVersion(int versionNumber){
     Version* current = head;
     Version* previous = nullptr;
     while (current != nullptr){
-        if (current->versionNumber == versionNumber){
+        if (current->versionNumber == versionNumber){ // if the version number is found
             if (previous == nullptr){
                 head = current->next;
             } else {
@@ -168,19 +176,24 @@ void removeVersion(Version*& head, int versionNumber){
     }
 }
 
-void loadVersion(Version*& head, int versionNumber){
+void loadVersion(int version){
     Version* current = head;
     while (current != nullptr){
-        if (current->versionNumber == versionNumber){
-            std::cout << "Loading version " << versionNumber << std::endl;
-            std::cout << current->content << std::endl;
+        if (current->versionNumber == version){
+            std::cout << "Version " << version << " loaded successfully. Please refresh your text editor to see the changes." << std::endl;
+            // write the content of this version to a "file.txt" file
+            std::ofstream file("file.txt");
+            file << current->content;
+            file.close();
+            // std::cout << current->content << std::endl;
             return;
         }
         current = current->next;
     }
+    std::cout << "Please enter a valid version number. If you are not sure please press 'p' to list all valid version numbers." << std::endl;
 }
 
-void print(Version* head){
+void print(){
     /* 
     print all the available versions (shown example only has one so far) to the screen. This
     function is handy for debugging. From the menu press ‘p’. Example output:
@@ -201,12 +214,26 @@ void print(Version* head){
     while (current != nullptr){
         std::cout << "Version number: " << current->versionNumber << std::endl;
         std::cout << "Hash value: " << current->hashValue << std::endl;
-        std::cout << "Content: " << current->content << std::endl;
+        std::cout << "Content: " << current->content << "\n" << std::endl;
         current = current->next;
     }
 }
 
-void compareVersions(Version* head, int versionNumber1, int versionNumber2){
+void compareVersions(int versionNumber1, int versionNumber2){
+    /*
+    The following result will be printed to the screen:
+    Line 1: Dear Comp 322 students. <<>> Dear Comp 322 students. C++ is a
+    complicated language.
+    Let’s enter ‘c’ again to compare the first and the 3rd versions
+    Please enter the number of the first version to compare:
+    The user inputs 1. The following will be printed to the screen:
+    Please enter the number of the second version to compare:
+    The user inputs 3.
+    The following result will be printed to the screen:
+    Line 1: <Identical>
+    Line 2: <Empty line> <<>> Coding in C++ is like going to the gym: No
+    pain no gain!
+    */
     Version* current = head;
     Version* version1 = nullptr;
     Version* version2 = nullptr;
@@ -230,7 +257,7 @@ void compareVersions(Version* head, int versionNumber1, int versionNumber2){
     }
 }
 
-void searchVersions(Version* head, std::string keyword){
+void searchVersions(std::string keyword){
     Version* current = head;
     while (current != nullptr){
         if (current->content.find(keyword) != std::string::npos){ //npos is the maximum value for size_t

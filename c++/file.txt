@@ -1,1 +1,2 @@
-Dear Comp 322 students. C++ is a complicated language.
+Dear Comp 322 students.
+Coding in C++ is like going to the gym: No pain no gain!
