@@ -8,7 +8,8 @@ import sklearn
 import math
 import cv2
 
-def augment(img, horizontal_flip=True, vertical_flip = False, gaussian_blur=False, gaussian_noise=False, rotate_angle=0):
+#function used to perform data augmentation. applies various augmentations to image depending on which input params are set to true
+def augment(img, horizontal_flip=True, vertical_flip = False, gaussian_blur=False, gaussian_noise=False, rotate_angle=0, perspective_transform_ratio = 1.0):
     rows, cols, _ = img.shape
     if horizontal_flip:
       img = cv2.flip(img,1)
@@ -16,17 +17,27 @@ def augment(img, horizontal_flip=True, vertical_flip = False, gaussian_blur=Fals
       img = cv2.flip(img,0)
     if gaussian_blur:
       img = cv2.GaussianBlur(img,(5,5),0) # 5x5 kernel, sigmaX=0
-    if gaussian_noise:
-      sigma = var ** 0.5
-      gaussian = np.random.normal(mean,sigma,(row, col))
+    if gaussian_noise: #dont use this xD
+      sigma = 0.357 ** 0.5 # variance = 0.357
+      gaussian = np.random.normal(0,sigma,(rows, cols)) # mean = 0
       img = np.zeros(img.shape, np.float32)
       img[:, :, 0] = img[:, :, 0] + gaussian
       img[:, :, 1] = img[:, :, 1] + gaussian
       img[:, :, 2] = img[:, :, 2] + gaussian
       cv2.normalize(img, img, 0, 255, cv2.NORM_MINMAX, dtype=-1)
       img = img.astype(np.uint8)
+    #rotate
     M = cv2.getRotationMatrix2D((cols/2,rows/2), rotate_angle, 1)
     img = cv2.warpAffine(img, M, (cols,rows))
+    #perspective transform
+    if perspective_transform_ratio == 1.0:
+      return img
+    input_pts=np.float32([[0, 0], [img.shape[0], 0], [0, img.shape[1]], [img.shape[0], img.shape[1]]])
+    width = int(round(img.shape[0]*perspective_transform_ratio))
+    output_pts=np.float32([[0, 0], [width, 0], [0, img.shape[1]], [width, img.shape[1]]])
+    M = cv2.getPerspectiveTransform(input_pts, output_pts)
+    img = cv2.warpPerspective(img, M, (img.shape[0], img.shape[1]))
+    img = img[:, 0:width]
     return img
   
 def unpickle(file):
@@ -57,21 +68,49 @@ for i in range(train_data1.shape[0]):
   img_augmented = augment(img).transpose(2,0,1).reshape(3072) # augment then convert back to 1x3072
   train_data_augmented.append(img_augmented)
 train_data_augmented = np.array(train_data_augmented)
+#concatenate original data with augmented data to create a larger dataset!!! :D
+train_data_augmented = np.concatenate((train_data1, train_data_augmented), axis=0)
+train_labels_augmented = np.concatenate((train_labels1, train_labels1), axis=0)
 print("augmented shape: ",train_data_augmented.shape)
+
+#show the effects of augmentation
+#the images are so blurry lol
+print("row 0 to 5: original, horizontal flip, vertical flip, perspective transform 0.753, gaussian blur, rotate 45")
+indices = np.random.randint(0, train_data1.shape[0], 8) #generate random indices to show random images...
+#plot
+fig, axes = plt.subplots(ncols=4, nrows=6, constrained_layout=True, figsize=(20, 8))
+
+for x in range(0,4):
+  img = train_data1[indices[x]].reshape(3,32,32).transpose(1,2,0)
+  axes[0][x].imshow(img)
+  hflipped = augment(img, horizontal_flip=True)
+  axes[1][x].imshow(hflipped)
+  vflipped = augment(img, horizontal_flip = False, vertical_flip=True)
+  axes[2][x].imshow(vflipped)
+  perspectiveTransform =  augment(img, horizontal_flip = False, vertical_flip=False, perspective_transform_ratio=0.753)
+  axes[3][x].imshow(perspectiveTransform)
+  blur = augment(img, horizontal_flip = False, vertical_flip=False, gaussian_blur=True)
+  axes[4][x].imshow(blur)
+  rotate = augment(img, horizontal_flip = False, vertical_flip=False, rotate_angle=45)
+  axes[5][x].imshow(rotate)
+plt.show()
 
 #one hot encode
 def one_hot(y, num_classes):
   return np.eye(num_classes)[y]
 num_classes = 10
 train_labels = one_hot(train_labels1, num_classes)
+train_labels_augmented = one_hot(train_labels_augmented, num_classes)
 #train_labels = np.array(train_labels1)
 print(f"train labels shape: {train_labels.shape}")
+print(f"augmented train labels shape: {train_labels_augmented.shape}")
 test_labels = one_hot(test_labels1, num_classes)
 #test_labels = np.array(test_labels1)
 print(f"test labels shape: {test_labels.shape}")
 
-#normalize
+#normalize :/
 train_data = train_data1/255.
+train_data_augmented = train_data_augmented/255.
 test_data = test_data1/255.
 
 #abstract class
@@ -336,14 +375,14 @@ class Network:
         else:
           print('epoch %d/%d   loss=%f ' % (t+1, num_epochs, error))
           
-net1 = Network(l1_lambda=0.0, l2_lambda=0.01)
+net1 = Network()
 net1.change_loss(cross_entropy_with_sm, cross_entropy_prime_with_sm)
-net1.add(FCL(32*32*3, 50, l1_lambda=0.0, l2_lambda=0.0))
+net1.add(FCL(32*32*3, 256, l1_lambda=0.0, l2_lambda=0.0))
 # net1.add(ActivationLayer(relu, relu_prime))
 # net1.add(FCL(50, 50))
 net1.add(ActivationLayer(relu, relu_prime))
-net1.add(FCL(50, 10, l1_lambda=0.01, l2_lambda=0.0))
-net1.fit(train_data, train_labels, num_epochs=10, alpha=0.001, batch_size = 64)
+net1.add(FCL(256, 10, l1_lambda=0.0, l2_lambda=0.0))
+net1.fit(train_data_augmented, train_labels_augmented, num_epochs=10, alpha=0.001, batch_size = 64)
 
 out = net1.predict(test_data)
 test_labels = np.argmax(test_labels, axis=1)
