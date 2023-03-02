@@ -33,6 +33,7 @@ struct Version {
 //global variables
 int versionNumber = 1; // version number
 int loadVersionNumber = 1;
+int versionIndex = 1; // version index
 Version* head = nullptr; // head of the linked list
 
 // Function to add a new version of the file
@@ -136,7 +137,7 @@ int add(std::string filename){
     std::string content; // content of the file
     std::string line; // line of the file
     while (std::getline(file, line)) { // read the file line by line
-        content += line + " "; // add the line to the content
+        content += line + "\n"; // add the line to the content
     }
     if (head != nullptr && head->content == content){
         std::cout << "git322 did not detect any change to your file and will not create a new version." << std::endl;
@@ -144,6 +145,7 @@ int add(std::string filename){
     }
     Version* newVersion = new Version; // new Version is a pointer to a Version object
     newVersion->versionNumber = versionNumber++; // initialize the version number to 1
+    versionIndex++; // increment the version index
     newVersion->timestamp = std::time(0); // initialize the timestamp to the current time
     newVersion->content = content; // initialize the content to the given content
     newVersion->hashValue = generateHash(content); // initialize the hash value to the hash of the given content
@@ -169,6 +171,8 @@ void removeVersion(int versionNumber){
                 previous->next = current->next;
             }
             delete current;
+            versionNumber--;
+            std::cout << "Version " << versionNumber << " has been removed successfully." << std::endl;
             return;
         }
         previous = current;
@@ -250,10 +254,18 @@ void compareVersions(int versionNumber1, int versionNumber2){
         std::cout << "One or both of the versions you entered do not exist." << std::endl;
         return;
     }
-    if (version1->hashValue == version2->hashValue){
-        std::cout << "The two versions are identical." << std::endl;
-    } else {
-        std::cout << "The two versions are different." << std::endl;
+    std::string content1 = version1->content;
+    std::string content2 = version2->content;
+    std::string line1;
+    std::string line2;
+    int lineCount = 1;
+    while (std::getline(content1, line1) && std::getline(content2, line2)){
+        if (line1 == line2){
+            std::cout << "Line " << lineCount << ": <Identical>" << std::endl;
+        } else {
+            std::cout << "Line " << lineCount << ": " << line1 << " <<>> " << line2 << std::endl;
+        }
+        lineCount++;
     }
 }
 
@@ -265,6 +277,7 @@ void searchVersions(std::string keyword){
         }
         current = current->next;
     }
+    std::cout << "Your keyword " << keyword<< " was not found in any version." << std::endl;
 }
 
 
