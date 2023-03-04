@@ -1,2 +1,1 @@
-Dear Comp 322 students.
-
+Dear Comp 322 students. C++ is a complicated languageas
