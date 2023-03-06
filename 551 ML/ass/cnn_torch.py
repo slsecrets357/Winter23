@@ -49,10 +49,47 @@ print(f"device Used is... {device}!!")
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.conv1 = nn.Conv2d(3, 6, 5) # 3 input channels, 6 output channels, 5x5 kernel
+        self.pool = nn.MaxPool2d(2, 2) # 2x2 kernel
+        self.conv2 = nn.Conv2d(6, 16, 5) # 6 input channels (from conv1), 16 output channels, 5x5 kernel
+        self.fc1 = nn.Linear(16 * 5 * 5, 256) # 16 input channels, 256 output channels
+        self.fc2 = nn.Linear(256, 10)
+        # self.fc3 = nn.Linear(84, 10)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        # x = F.relu(self.fc2(x))
+        x = self.fc2(x)
+        return x
+
+class Net2(nn.Module): #trying kernel size of 3 in the second conv layer
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 6, 5) # 3 input channels, 6 output channels, 3x3 kernel
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 256)
+        self.conv2 = nn.Conv2d(6, 16, 3)
+        self.fc1 = nn.Linear(16 * 6 * 6, 256)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        # x = F.relu(self.fc2(x))
+        x = self.fc2(x)
+        return x
+
+class Net3(nn.Module): #trying less number of filters: 4 and 8
+    def __init__(self):
+        super().__init__()
+        #input is 32x32
+        self.conv1 = nn.Conv2d(3, 4, 5) # 3 input channels, 6 output channels, 5x5 kernel
+        self.pool = nn.MaxPool2d(2, 2) # 2x2 kernel
+        self.conv2 = nn.Conv2d(4, 8, 5) # 6 input channels, 16 output channels, 5x5 kernel
+        self.fc1 = nn.Linear(8 * 5 * 5, 256) # 16 input channels, 256 output channels
         self.fc2 = nn.Linear(256, 10)
         # self.fc3 = nn.Linear(84, 10)
 
@@ -66,7 +103,11 @@ class Net(nn.Module):
         return x
 
 net = Net()
+net2 = Net2()
+net3 = Net3()
 net.to(device)
+net2.to(device)
+net3.to(device)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -95,9 +136,6 @@ for epoch in range(5):  # loop over the dataset multiple times
             running_loss = 0.0
 
 print('Finished Training')
-
-PATH = './cifar_net.pth'
-torch.save(net.state_dict(), PATH)
 
 dataiter = iter(testloader)
 images, labels = next(dataiter)
@@ -128,24 +166,120 @@ with torch.no_grad():
 
 print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
 
-# prepare to count predictions for each class
-correct_pred = {classname: 0 for classname in classes}
-total_pred = {classname: 0 for classname in classes}
+#------------------Net2------------------
 
-# again no gradients needed
+optimizer2 = torch.optim.SGD(net2.parameters(), lr=0.001, momentum=0.9)
+
+for epoch in range(5):  # loop over the dataset multiple times
+
+    running_loss = 0.0
+    for i, data in enumerate(trainloader, 0):
+        # get the inputs; data is a list of [inputs, labels]
+        # inputs, labels = data
+        inputs, labels = data[0].to(device), data[1].to(device)
+
+        # zero the parameter gradients
+        optimizer2.zero_grad()
+
+        # forward + backward + optimize
+        outputs = net2(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer2.step()
+
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:    # print every 2000 mini-batches
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+            running_loss = 0.0
+
+print('Finished Training2')
+
+dataiter = iter(testloader)
+images, labels = next(dataiter)
+
+# print images
+# imshow(torchvision.utils.make_grid(images))
+print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
+
+outputs = net2(images)
+
+_, predicted = torch.max(outputs, 1)
+
+print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}'
+                              for j in range(4)))
+
+correct = 0
+total = 0
+# since we're not training, we don't need to calculate the gradients for our outputs
 with torch.no_grad():
     for data in testloader:
         images, labels = data
-        outputs = net(images)
-        _, predictions = torch.max(outputs, 1)
-        # collect the correct predictions for each class
-        for label, prediction in zip(labels, predictions):
-            if label == prediction:
-                correct_pred[classes[label]] += 1
-            total_pred[classes[label]] += 1
+        # calculate outputs by running images through the network
+        outputs = net2(images)
+        # the class with the highest energy is what we choose as prediction
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+print(f'Accuracy of the network2 on the 10000 test images: {100 * correct // total} %')
+
+#------------------Net3------------------
+
+optimizer3 = torch.optim.SGD(net3.parameters(), lr=0.001, momentum=0.9)
+
+for epoch in range(5):  # loop over the dataset multiple times
+
+    running_loss = 0.0
+    for i, data in enumerate(trainloader, 0):
+        # get the inputs; data is a list of [inputs, labels]
+        # inputs, labels = data
+        inputs, labels = data[0].to(device), data[1].to(device)
+
+        # zero the parameter gradients
+        optimizer3.zero_grad()
+
+        # forward + backward + optimize
+        outputs = net3(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer3.step()
+
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:    # print every 2000 mini-batches
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+            running_loss = 0.0
+
+print('Finished Training2')
+
+dataiter = iter(testloader)
+images, labels = next(dataiter)
+
+# print images
+# imshow(torchvision.utils.make_grid(images))
+print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
+
+outputs = net3(images)
+
+_, predicted = torch.max(outputs, 1)
+
+print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}'
+                              for j in range(4)))
+
+correct = 0
+total = 0
+# since we're not training, we don't need to calculate the gradients for our outputs
+with torch.no_grad():
+    for data in testloader:
+        images, labels = data
+        # calculate outputs by running images through the network
+        outputs = net3(images)
+        # the class with the highest energy is what we choose as prediction
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+print(f'Accuracy of the network3 on the 10000 test images: {100 * correct // total} %')
 
 
-# print accuracy for each class
-for classname, correct_count in correct_pred.items():
-    accuracy = 100 * float(correct_count) / total_pred[classname]
-    print(f'Accuracy for class: {classname:5s} is {accuracy:.1f} %')
