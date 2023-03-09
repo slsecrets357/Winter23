@@ -21,7 +21,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "arm_math.h"
+#include <math.h>
+#include "stm32l4xx_hal_conf.h"
 
+#define TABLE_SIZE 256
+uint16_t sine_table[TABLE_SIZE];
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +54,9 @@ DAC_HandleTypeDef hdac1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DAC1_Init(void);
+static float sin1(float x) {
+	return x-x*x*x/6+x*x*x*x*x/120;
+}
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -56,6 +64,9 @@ static void MX_DAC1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 int i =0;
+float b = 0;
+int k=0;
+float angle;
 /* USER CODE END 0 */
 
 /**
@@ -65,7 +76,12 @@ int i =0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	// Generate a lookup table of sine values
+	    for (i = 0; i < TABLE_SIZE; i++)
+	    {
+	        angle = 2 * M_PI * i / TABLE_SIZE;
+	        sine_table[i] = (uint16_t)(2048 + 2047 * arm_sin_f32(angle));
+	    }
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -88,7 +104,7 @@ int main(void)
   MX_GPIO_Init();
   MX_DAC1_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -98,37 +114,47 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  for(int j=0; j<3; j++) {
-		  for (i = 0; i < 4095; i+=273)
-			  {
-				  // increment the DAC output voltage
-				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+	  //triangle wave
+//	  for(int j=0; j<3; j++) {
+//		  for (i = 0; i < 4095; i+=273)
+//			  {
+//				  // increment the DAC output voltage
+//				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+//
+//				  // wait for a short time to slow down the signal
+//				  HAL_Delay(1);
+//			  }
+//
+//		  for (i = 4095; i > 0; i-=273)
+//			  {
+//				  // decrement the DAC output voltage
+//				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+//
+//				  // wait for a short time to slow down the signal
+//				  HAL_Delay(1);
+//			  }
+//	  }
+	  //sawtooth
+//	  for(int j=0; j<3; j++) {
+//	  		  for (i = 0; i < 4095; i+=137)
+//	  			  {
+//	  				  // increment the DAC output voltage
+//	  				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+//
+//	  				  // wait for a short time to slow down the signal
+//	  				  HAL_Delay(1);
+//	  			  }
+//	  		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+//
+//	  	 }
 
-				  // wait for a short time to slow down the signal
-				  HAL_Delay(1);
-			  }
-
-		  for (i = 4095; i > 0; i-=273)
-			  {
-				  // decrement the DAC output voltage
-				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
-
-				  // wait for a short time to slow down the signal
-				  HAL_Delay(1);
-			  }
-	  }
-	  for(int j=0; j<3; j++) {
-	  		  for (i = 0; i < 4095; i+=137)
-	  			  {
-	  				  // increment the DAC output voltage
-	  				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
-
-	  				  // wait for a short time to slow down the signal
-	  				  HAL_Delay(1);
-	  			  }
-	  		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
-
-	  	  }
+	  //sine wave
+	  for (i = 0; i < TABLE_SIZE; i++)
+	          {
+		  	  	  k = sine_table[i];
+	              HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, k);
+	              HAL_Delay(1);
+	          }
   }
   /* USER CODE END 3 */
 }
