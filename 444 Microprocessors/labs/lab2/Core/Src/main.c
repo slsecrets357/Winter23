@@ -78,6 +78,9 @@ PUTCHAR_PROTOTYPE
   * @brief  The application entry point.
   * @retval int
   */
+float voltage;
+float temperature;
+float calibrationValue;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -127,7 +130,7 @@ int main(void)
   sConfig.Channel = ADC_CHANNEL_VREFINT;
 //  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5; //datasheet specifies min 4us for vrefint sampling time 122 184 207
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -141,8 +144,7 @@ int main(void)
   char status = 0;
   char prev = 0;
   uint16_t adcValue;
-  float voltage;
-  float temperature;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -159,39 +161,35 @@ int main(void)
 		  if(status == GPIO_PIN_RESET){ // button was pressed SET=1, RESET=0
 			  if(HAL_GPIO_ReadPin(myLed2_GPIO_Port, myLed2_Pin) == GPIO_PIN_SET){ // light is on
 				  HAL_GPIO_WritePin(myLed2_GPIO_Port, myLed2_Pin, GPIO_PIN_RESET); // turn light off
-				  // Read the reference voltage value from ADC1
+				  // change channel to Read the reference voltage value from ADC1
 				  sConfig.Channel = ADC_CHANNEL_VREFINT;
-				  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-				    {
-				      Error_Handler();
-				    }
-				  	  HAL_ADC_Start(&hadc1);
 
-				  	  HAL_ADC_PollForConversion(&hadc1,100);
-				  	  adcValue = HAL_ADC_GetValue(&hadc1);
-				  	  HAL_ADC_Stop(&hadc1);
-				  	  // Convert the ADC value to a voltage value
-				  	  voltage = (float)((*VREFINT)*3.0/adcValue);
-				  	  printf("reference Voltage: %.2f V\n", voltage);
 			  }
 			  else{ // light is off
 				  HAL_GPIO_WritePin(myLed2_GPIO_Port, myLed2_Pin, GPIO_PIN_SET); // turn light on
-				  // Read the temperature from ADC1
+				  // change channel to Read the temperature from ADC1
 				  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
-				  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-				  {
-				  	Error_Handler();
-				  }
-				  HAL_ADC_Start(&hadc1);
-				    HAL_ADC_PollForConversion(&hadc1, 100);
-				    adcValue = HAL_ADC_GetValue(&hadc1);
-				    HAL_ADC_Stop(&hadc1);
-				    temperature = 100.0/((*TS_CAL2)-(*TS_CAL1))*(adcValue*3.5/3.0-(*TS_CAL1))+30.0;
-				    printf("temperature: %.2f C\n", temperature);
 			  }
 		  }
 		  prev = status; // update previous status
 	  }
+	  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	  				    {
+	  				      Error_Handler();
+	  				    }
+	  				  	  HAL_ADC_Start(&hadc1);
+
+	  				  	  HAL_ADC_PollForConversion(&hadc1,100);
+	  				  	  adcValue = HAL_ADC_GetValue(&hadc1);
+	  				  	  HAL_ADC_Stop(&hadc1);
+	  				  	  // Convert the ADC value to a voltage value
+	  				  	if(HAL_GPIO_ReadPin(myLed2_GPIO_Port, myLed2_Pin) != GPIO_PIN_SET){
+	  				  	  voltage = (float)((*VREFINT)*3.0/adcValue);
+	  				  	  calibrationValue = voltage/3.0;
+	  				  	  printf("reference Voltage: %.2f V\n", voltage);
+	  				  	} else {
+	  				  	temperature = 100.0/((*TS_CAL2)-(*TS_CAL1))*(adcValue*calibrationValue-(*TS_CAL1))+30.0;
+	  				  	}
 
   }
 
@@ -294,7 +292,7 @@ static void MX_ADC1_Init(void)
   sConfig.Channel = ADC_CHANNEL_VREFINT;
 //  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
