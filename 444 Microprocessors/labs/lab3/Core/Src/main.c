@@ -54,9 +54,6 @@ DAC_HandleTypeDef hdac1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DAC1_Init(void);
-static float sin1(float x) {
-	return x-x*x*x/6+x*x*x*x*x/120;
-}
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -115,38 +112,38 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  //triangle wave
-//	  for(int j=0; j<3; j++) {
-//		  for (i = 0; i < 4095; i+=273)
-//			  {
-//				  // increment the DAC output voltage
-//				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
-//
-//				  // wait for a short time to slow down the signal
-//				  HAL_Delay(1);
-//			  }
-//
-//		  for (i = 4095; i > 0; i-=273)
-//			  {
-//				  // decrement the DAC output voltage
-//				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
-//
-//				  // wait for a short time to slow down the signal
-//				  HAL_Delay(1);
-//			  }
-//	  }
+	  for(int j=0; j<3; j++) {
+		  for (i = 0; i < 4095; i+=273)
+			  {
+				  // increment the DAC output voltage
+				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+
+				  // wait for a short time to slow down the signal
+				  HAL_Delay(1);
+			  }
+
+		  for (i = 4095; i > 0; i-=273)
+			  {
+				  // decrement the DAC output voltage
+				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+
+				  // wait for a short time to slow down the signal
+				  HAL_Delay(1);
+			  }
+	  }
 	  //sawtooth
-//	  for(int j=0; j<3; j++) {
-//	  		  for (i = 0; i < 4095; i+=137)
-//	  			  {
-//	  				  // increment the DAC output voltage
-//	  				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
-//
-//	  				  // wait for a short time to slow down the signal
-//	  				  HAL_Delay(1);
-//	  			  }
-//	  		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
-//
-//	  	 }
+	  for(int j=0; j<3; j++) {
+	  		  for (i = 0; i < 4095; i+=137)
+	  			  {
+	  				  // increment the DAC output voltage
+	  				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+
+	  				  // wait for a short time to slow down the signal
+	  				  HAL_Delay(1);
+	  			  }
+	  		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+
+	  	 }
 
 	  //sine wave
 	  for (i = 0; i < TABLE_SIZE; i++)
@@ -289,6 +286,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(myled_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
