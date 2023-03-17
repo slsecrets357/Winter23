@@ -64,6 +64,7 @@ int i =0;
 float b = 0;
 int k=0;
 float angle;
+int wa= 0;
 /* USER CODE END 0 */
 
 /**
@@ -112,7 +113,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  //triangle wave
-	  for(int j=0; j<3; j++) {
 		  for (i = 0; i < 4095; i+=273)
 			  {
 				  // increment the DAC output voltage
@@ -130,25 +130,23 @@ int main(void)
 				  // wait for a short time to slow down the signal
 				  HAL_Delay(1);
 			  }
-	  }
+
 	  //sawtooth
-	  for(int j=0; j<3; j++) {
-	  		  for (i = 0; i < 4095; i+=137)
+	  		  for (wa= 0; wa < 4095; wa+=137)
 	  			  {
 	  				  // increment the DAC output voltage
-	  				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+	  				  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, wa);
 
 	  				  // wait for a short time to slow down the signal
 	  				  HAL_Delay(1);
 	  			  }
-	  		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, i);
+	  		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, wa);
 
-	  	 }
 
 	  //sine wave
-	  for (i = 0; i < TABLE_SIZE; i++)
+	  for (int kk = 0; kk < TABLE_SIZE; kk++)
 	          {
-		  	  	  k = sine_table[i];
+		  	  	  k = sine_table[kk];
 	              HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, k);
 	              HAL_Delay(1);
 	          }
