@@ -92,6 +92,7 @@ class NaiveBayes:
         self.vocabulary = None # Set of unique words
 
     def fit(self, X, y):
+        print(f"Training the model... X: {X.shape}, y: {y.shape}")
         self.classes, class_counts = np.unique(y, return_counts=True) # Get the list of classes and their counts
         self.class_counts = dict(zip(self.classes, class_counts)) 
         self.vocabulary = set(word for review in X for word in review)
@@ -101,9 +102,12 @@ class NaiveBayes:
         for x, label in zip(X, y):
             for word in x: 
                 self.word_counts[label][word] += 1
+        print("done training model.")
 
     def predict(self, X):
+        print(f"Predicting... X: {X.shape}")
         predictions = []
+        i = 0
         for x in X:
             probabilities = []
             for c in self.classes: 
@@ -115,7 +119,9 @@ class NaiveBayes:
                         log_prob += np.log(word_count / total_words)
                 probabilities.append(log_prob)
             predictions.append(self.classes[np.argmax(probabilities)])
-            print("probabilities: ", probabilities)
+            i+=1
+            if i%20 == 0:
+                print(str(i)+") probabilities: ", probabilities)
         return predictions
 
     def evaluate_acc(self, y_true, y_pred):
@@ -133,8 +139,9 @@ nb_classifier = NaiveBayes()
 nb_classifier.fit(X_train, y_train)
 
 # Make predictions
-y_pred = nb_classifier.predict(X_test)
+num = 357
+y_pred = nb_classifier.predict(X_test[:num])
 
 # Evaluate the model
-accuracy = nb_classifier.evaluate_acc(y_test, y_pred)
+accuracy = nb_classifier.evaluate_acc(y_test[:num], y_pred)
 print("Accuracy:", accuracy)
