@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -49,8 +50,13 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart4;
 
+osThreadId defaultTaskHandle;
+osThreadId myTask02Handle;
+osThreadId myTask03Handle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -60,15 +66,89 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_UART4_Init(void);
+static void MX_TIM2_Init(void);
+void StartDefaultTask(void const * argument);
+void StartTask02(void const * argument);
+void StartTask03(void const * argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void ReadSensorValues(void)
+volatile int currentSensor = 0;
+int test, test2, test3;
+char prev = 0, status = 0;
+float humidity, magnetometer[3], gyroscope[3], pressure;
+
+//void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin){
+//	if(GPIO_Pin == mybutton_Pin){
+//		HAL_GPIO_TogglePin(myled_GPIO_Port, myled_Pin); // Toggle LED
+//		currentSensor++;
+//	}
+//	if(currentSensor%4==0) currentSensor = 0;
+//}
+
+void ReadSensorValues(int sensorIndex)
 {
-  float humidity, magnetometer[3], gyroscope[3], pressure;
+  switch (sensorIndex)
+  {
+    case 0: // Display humidity from HTS221
+      humidity = BSP_HSENSOR_ReadHumidity();
+//      printf("Humidity: %.2f %%\r\n", humidity);
+      break;
+
+    case 1: // Display magnetic field (X-axis) from LIS3MDL
+      BSP_MAGNETO_GetXYZ(magnetometer);
+//      printf("Magnetometer X: %.2f mG\r\n", magnetometer[0]);
+      break;
+
+    case 2: // Display gyroscope (X-axis) from LSM6DSL
+      BSP_GYRO_GetXYZ(gyroscope);
+//      printf("Gyroscope X: %.2f dps\r\n", gyroscope[0]);
+      break;
+
+    case 3: // Display pressure from LPS22HB
+      pressure = BSP_PSENSOR_ReadPressure();
+//      printf("Pressure: %.2f hPa\r\n", pressure);
+      break;
+
+    default:
+      break;
+  }
+}
+void PrintSensorValues(int sensorIndex)
+{
+  switch (sensorIndex)
+  {
+    case 0: // Display humidity from HTS221
+//      humidity = BSP_HSENSOR_ReadHumidity();
+      printf("Humidity: %.2f %%\r\n", humidity);
+      break;
+
+    case 1: // Display magnetic field (X-axis) from LIS3MDL
+//      BSP_MAGNETO_GetXYZ(magnetometer);
+      printf("Magnetometer X: %.2f mG\r\n", magnetometer[0]);
+      break;
+
+    case 2: // Display gyroscope (X-axis) from LSM6DSL
+//      BSP_GYRO_GetXYZ(gyroscope);
+      printf("Gyroscope X: %.2f dps\r\n", gyroscope[0]);
+      break;
+
+    case 3: // Display pressure from LPS22HB
+//      pressure = BSP_PSENSOR_ReadPressure();
+      printf("Pressure: %.2f hPa\r\n", pressure);
+      break;
+
+    default:
+      break;
+  }
+}
+
+void ReadAllSensorValues(void)
+{
 
   // Read humidity from HTS221
   humidity = BSP_HSENSOR_ReadHumidity();
@@ -116,6 +196,7 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_UART4_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   BSP_HSENSOR_Init(); // Initialize HTS221 (humidity sensor)
   BSP_MAGNETO_Init(); // Initialize LIS3MDL (magnetometer)
@@ -123,6 +204,43 @@ int main(void)
   BSP_PSENSOR_Init(); // Initialize LPS22HB (pressure sensor)
   /* USER CODE END 2 */
 
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of defaultTask */
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* definition and creation of myTask02 */
+  osThreadDef(myTask02, StartTask02, osPriorityIdle, 0, 128);
+  myTask02Handle = osThreadCreate(osThread(myTask02), NULL);
+
+  /* definition and creation of myTask03 */
+  osThreadDef(myTask03, StartTask03, osPriorityIdle, 0, 128);
+  myTask03Handle = osThreadCreate(osThread(myTask03), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -130,8 +248,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  ReadSensorValues();
-	  HAL_Delay(100); // 10 Hz sampling rate (100 ms delay between reads)
+//	  ReadAllSensorValues();
+//	  ReadSensorValues(currentSensor);
+//	  PrintSensorValues(currentSensor);
+//	  HAL_Delay(100); // 10 Hz sampling rate (100 ms delay between reads)
   }
   /* USER CODE END 3 */
 }
@@ -235,6 +355,51 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 2721;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief UART4 Initialization Function
   * @param None
   * @retval None
@@ -312,11 +477,103 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(myled_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+	osDelay(100);
+	test++;
+	ReadSensorValues(currentSensor);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartTask02 */
+/**
+* @brief Function implementing the myTask02 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask02 */
+void StartTask02(void const * argument)
+{
+  /* USER CODE BEGIN StartTask02 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(2);
+    status = HAL_GPIO_ReadPin(mybutton_GPIO_Port, mybutton_Pin);
+    	if(status != prev){ // button was pressed or released
+    		if(status == GPIO_PIN_RESET){ // button was pressed SET=1, RESET=0
+    			HAL_GPIO_TogglePin(myled_GPIO_Port, myled_Pin); // Toggle LED
+    			currentSensor = (currentSensor+1)%4;
+    		}
+    		prev = status; // update previous status
+    	}
+    test2 = (test2+1)%1000;
+  }
+  /* USER CODE END StartTask02 */
+}
+
+/* USER CODE BEGIN Header_StartTask03 */
+/**
+* @brief Function implementing the myTask03 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask03 */
+void StartTask03(void const * argument)
+{
+  /* USER CODE BEGIN StartTask03 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(400);
+    PrintSensorValues(currentSensor);
+    test3++;
+  }
+  /* USER CODE END StartTask03 */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM7 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM7) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

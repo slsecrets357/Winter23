@@ -59,6 +59,7 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define mybutton_Pin GPIO_PIN_13
 #define mybutton_GPIO_Port GPIOC
+#define mybutton_EXTI_IRQn EXTI15_10_IRQn
 #define myled_Pin GPIO_PIN_14
 #define myled_GPIO_Port GPIOB
 
