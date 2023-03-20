@@ -1,3 +1,3 @@
-import color_sorter
+import utility
 
-print(color_sorter.sort_color([6, 10, 235]))
+print(utility.sort_color([6, 10, 235]))

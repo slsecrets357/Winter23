@@ -92,7 +92,6 @@ class NaiveBayes:
         self.class_counts = None # Dictionary of class counts
         self.word_counts = None # Dictionary of word counts
         self.vocabulary = None # Set of unique words
-        self.word_counts = defaultdict(Counter)
 
     def fit(self, X, y):
         print(f"Training the model... X: {X.shape}, y: {y.shape}")
@@ -103,20 +102,19 @@ class NaiveBayes:
 
         # Count the number of times each word appears in each class. Zip returns an iterator of tuples
         for x, label in zip(X, y): 
-            self.word_counts[label].update(x) 
             for word in x: 
                 self.word_counts[label][word] += 1
-        print("done training model.")
         
+        # Precompute logarithms of prior probabilities and word probabilities
         self.log_priors = {}
         self.log_word_probs = defaultdict(lambda: defaultdict(float))
-
         for c in self.classes:
             self.log_priors[c] = np.log(self.class_counts[c] / sum(self.class_counts.values()))
             total_words = sum(self.word_counts[c].values()) + len(self.vocabulary)
             for word in self.vocabulary:
                 word_count = self.word_counts[c][word] + 1  # Additive (Laplace) smoothing
                 self.log_word_probs[c][word] = np.log(word_count / total_words)
+        print("done training model.")
                 
     def predict(self, X):
         t1 = time.time()
@@ -126,40 +124,17 @@ class NaiveBayes:
         for x in X:
             probabilities = []
             x_unique = set(x)  # Only loop through unique words in the sample
-
             for c in self.classes:
                 log_prob = self.log_priors[c]
                 for word in x_unique:
                     if word in self.vocabulary:
                         log_prob += x.count(word) * self.log_word_probs[c][word]
                 probabilities.append(log_prob)
-
             predictions.append(self.classes[np.argmax(probabilities)])
             i+=1
-            if i%20 == 0:
+            if i%1000 == 0:
                 print(str(i)+") probabilities: ", probabilities, "time: ", time.time()-t1)
         return predictions
-    # def predict(self, X):
-    #     t1 = time.time()
-    #     print(f"Predicting... X: {X.shape}")
-    #     predictions = []
-    #     i = 0
-    #     for x in X:
-    #         probabilities = []
-    #         x_unique = set(x)  # Only loop through unique words in the sample
-    #         for c in self.classes: 
-    #             log_prob = np.log(self.class_counts[c] / sum(self.class_counts.values())) # Prior probability
-    #             for word in x: 
-    #                 if word in self.vocabulary:
-    #                     word_count = self.word_counts[c][word] + 1  # Additive (Laplace) smoothing
-    #                     total_words = sum(self.word_counts[c].values()) + len(self.vocabulary)
-    #                     log_prob += np.log(word_count / total_words)
-    #             probabilities.append(log_prob)
-    #         predictions.append(self.classes[np.argmax(probabilities)])
-    #         i+=1
-    #         if i%20 == 0:
-    #             print(str(i)+") probabilities: ", probabilities, "time: ", time.time()-t1)
-    #     return predictions
     
     def evaluate_acc(self, y_true, y_pred):
         correct = sum(y_true == y_pred)
@@ -176,7 +151,7 @@ nb_classifier = NaiveBayes()
 nb_classifier.fit(X_train, y_train)
 
 # Make predictions
-num = 100
+num = 25000
 t1 = time.time()
 y_pred = nb_classifier.predict(X_test[:num])
 print("prediction time: ", time.time()-t1)
