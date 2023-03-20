@@ -94,27 +94,32 @@ class NaiveBayes:
         self.vocabulary = None # Set of unique words
 
     def fit(self, X, y):
+        t2 = time.time()
         print(f"Training the model... X: {X.shape}, y: {y.shape}")
         self.classes, class_counts = np.unique(y, return_counts=True) # Get the list of classes and their counts
-        self.class_counts = dict(zip(self.classes, class_counts)) 
-        self.vocabulary = set(word for review in X for word in review)
+        self.class_counts = dict(zip(self.classes, class_counts)) # key: class, value: count of class
+        print(f"Classes: {self.classes}")
+        self.vocabulary = set(word for review in X for word in review) # Get the set of unique words
+        print(f"Vocabulary size: {len(self.vocabulary)}")
         self.word_counts = {c: {word: 0 for word in self.vocabulary} for c in self.classes}
+        print(f"Word counts: {self.word_counts}")
 
         # Count the number of times each word appears in each class. Zip returns an iterator of tuples
         for x, label in zip(X, y): 
             for word in x: 
                 self.word_counts[label][word] += 1
         
-        # Precompute logarithms of prior probabilities and word probabilities
-        self.log_priors = {}
-        self.log_word_probs = defaultdict(lambda: defaultdict(float))
+        # Precompute logarithms of prior probabilities and word probabilities 
+        self.log_priors = {} # Dictionary of log priors
+        self.log_word_probs = defaultdict(lambda: defaultdict(float)) # Dictionary of log word probabilities
         for c in self.classes:
             self.log_priors[c] = np.log(self.class_counts[c] / sum(self.class_counts.values()))
             total_words = sum(self.word_counts[c].values()) + len(self.vocabulary)
             for word in self.vocabulary:
                 word_count = self.word_counts[c][word] + 1  # Additive (Laplace) smoothing
                 self.log_word_probs[c][word] = np.log(word_count / total_words)
-        print("done training model.")
+        print("done training model!! :D")
+        print("training time: ", time.time()-t2)
                 
     def predict(self, X):
         t1 = time.time()
@@ -125,10 +130,10 @@ class NaiveBayes:
             probabilities = []
             x_unique = set(x)  # Only loop through unique words in the sample
             for c in self.classes:
-                log_prob = self.log_priors[c]
+                log_prob = self.log_priors[c] 
                 for word in x_unique:
                     if word in self.vocabulary:
-                        log_prob += x.count(word) * self.log_word_probs[c][word]
+                        log_prob += x.count(word) * self.log_word_probs[c][word] # Additive (Laplace) smoothing
                 probabilities.append(log_prob)
             predictions.append(self.classes[np.argmax(probabilities)])
             i+=1

@@ -118,10 +118,10 @@ def train_epoch(model, dataloader, optimizer, scheduler, device):
         model.zero_grad() # Clear any previously calculated gradients before performing a backward pass.
         outputs = model(input_ids, attention_mask=attention_masks, labels=labels)
         loss = outputs.loss
-        loss.backward()
+        loss.backward() # update gradients
         print(f"Batch {step} of {len(dataloader)} loss: {loss.item()}")
         
-        # Clip the norm of the gradients to 1.0. helps prevent the exploding gradients
+        # Clip norm of gradients to 1.0. helps prevent the exploding gradients
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) 
 
         optimizer.step() # Update parameters and take a step using the computed gradient.
