@@ -30,6 +30,7 @@
 #include "stm32l4s5i_iot01_magneto.h"
 //#include "stm32l4s5i_iot01_nfctag.h"
 #include "stm32l4s5i_iot01_psensor.h"
+#include <stdio.h>
 //#include "stm32l4s5i_iot01_qspi.h"
 /* USER CODE END Includes */
 
@@ -48,11 +49,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-I2C_HandleTypeDef hi2c1;
-
 TIM_HandleTypeDef htim2;
 
-UART_HandleTypeDef huart4;
+UART_HandleTypeDef huart1;
 
 osThreadId defaultTaskHandle;
 osThreadId myTask02Handle;
@@ -64,19 +63,29 @@ osThreadId myTask03Handle;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
-static void MX_UART4_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_USART1_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void StartTask02(void const * argument);
 void StartTask03(void const * argument);
 
 /* USER CODE BEGIN PFP */
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
 
+PUTCHAR_PROTOTYPE
+{
+  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return ch;
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+char str[100];
 volatile int currentSensor = 0;
 int test, test2, test3;
 char prev = 0, status = 0;
@@ -92,26 +101,23 @@ float humidity, magnetometer[3], gyroscope[3], pressure;
 
 void ReadSensorValues(int sensorIndex)
 {
+//	printf("hello");
   switch (sensorIndex)
   {
     case 0: // Display humidity from HTS221
       humidity = BSP_HSENSOR_ReadHumidity();
-//      printf("Humidity: %.2f %%\r\n", humidity);
       break;
 
     case 1: // Display magnetic field (X-axis) from LIS3MDL
       BSP_MAGNETO_GetXYZ(magnetometer);
-//      printf("Magnetometer X: %.2f mG\r\n", magnetometer[0]);
       break;
 
     case 2: // Display gyroscope (X-axis) from LSM6DSL
       BSP_GYRO_GetXYZ(gyroscope);
-//      printf("Gyroscope X: %.2f dps\r\n", gyroscope[0]);
       break;
 
     case 3: // Display pressure from LPS22HB
       pressure = BSP_PSENSOR_ReadPressure();
-//      printf("Pressure: %.2f hPa\r\n", pressure);
       break;
 
     default:
@@ -123,23 +129,19 @@ void PrintSensorValues(int sensorIndex)
   switch (sensorIndex)
   {
     case 0: // Display humidity from HTS221
-//      humidity = BSP_HSENSOR_ReadHumidity();
-      printf("Humidity: %.2f %%\r\n", humidity);
+      printf("Humidity: %d percent\n", (int)humidity);
       break;
 
     case 1: // Display magnetic field (X-axis) from LIS3MDL
-//      BSP_MAGNETO_GetXYZ(magnetometer);
-      printf("Magnetometer X: %.2f mG\r\n", magnetometer[0]);
+      printf("Magnetometer X: %d mG\r\n", (int)magnetometer[0]);
       break;
 
     case 2: // Display gyroscope (X-axis) from LSM6DSL
-//      BSP_GYRO_GetXYZ(gyroscope);
-      printf("Gyroscope X: %.2f dps\r\n", gyroscope[0]);
+      printf("Gyroscope X: %d dps\r\n", (int)gyroscope[0]);
       break;
 
     case 3: // Display pressure from LPS22HB
-//      pressure = BSP_PSENSOR_ReadPressure();
-      printf("Pressure: %.2f hPa\r\n", pressure);
+      printf("Pressure: %d hPa\r\n", (int)pressure);
       break;
 
     default:
@@ -162,7 +164,13 @@ void ReadAllSensorValues(void)
   // Read pressure from LPS22HB
   pressure = BSP_PSENSOR_ReadPressure();
 
-  // TODO: Process or print the sensor values as needed
+
+}
+void PrintAllSensorValues(void) {
+	  printf("Humidity: %.2f %%\r\n", humidity);
+	  printf("Magnetometer X: %.2f mG\r\n", magnetometer[0]);
+	  printf("Gyroscope X: %.2f dps\r\n", gyroscope[0]);
+	  printf("Pressure: %.2f hPa\r\n", pressure);
 }
 /* USER CODE END 0 */
 
@@ -173,7 +181,9 @@ void ReadAllSensorValues(void)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	for (int int1=0; int1<100; int1++){
+		str[int1]='\0';
+	}
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -194,14 +204,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
-  MX_UART4_Init();
   MX_TIM2_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   BSP_HSENSOR_Init(); // Initialize HTS221 (humidity sensor)
   BSP_MAGNETO_Init(); // Initialize LIS3MDL (magnetometer)
   BSP_GYRO_Init();    // Initialize LSM6DSL (gyroscope)
   BSP_PSENSOR_Init(); // Initialize LPS22HB (pressure sensor)
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -234,7 +244,7 @@ int main(void)
   myTask03Handle = osThreadCreate(osThread(myTask03), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+//  /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -248,10 +258,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 //	  ReadAllSensorValues();
-//	  ReadSensorValues(currentSensor);
+	  ReadSensorValues(currentSensor);
 //	  PrintSensorValues(currentSensor);
-//	  HAL_Delay(100); // 10 Hz sampling rate (100 ms delay between reads)
+	  PrintAllSensorValues();
+	  HAL_Delay(100); // 10 Hz sampling rate (100 ms delay between reads)
   }
   /* USER CODE END 3 */
 }
@@ -307,54 +319,6 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x307075B1;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
@@ -400,50 +364,50 @@ static void MX_TIM2_Init(void)
 }
 
 /**
-  * @brief UART4 Initialization Function
+  * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_UART4_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN UART4_Init 0 */
+  /* USER CODE BEGIN USART1_Init 0 */
 
-  /* USER CODE END UART4_Init 0 */
+  /* USER CODE END USART1_Init 0 */
 
-  /* USER CODE BEGIN UART4_Init 1 */
+  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE END UART4_Init 1 */
-  huart4.Instance = UART4;
-  huart4.Init.BaudRate = 115200;
-  huart4.Init.WordLength = UART_WORDLENGTH_8B;
-  huart4.Init.StopBits = UART_STOPBITS_1;
-  huart4.Init.Parity = UART_PARITY_NONE;
-  huart4.Init.Mode = UART_MODE_TX_RX;
-  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart4.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart4.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart4.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart4) != HAL_OK)
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart4, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
   {
     Error_Handler();
   }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart4, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
   {
     Error_Handler();
   }
-  if (HAL_UARTEx_DisableFifoMode(&huart4) != HAL_OK)
+  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN UART4_Init 2 */
+  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END UART4_Init 2 */
+  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -458,7 +422,6 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -503,6 +466,11 @@ void StartDefaultTask(void const * argument)
 	osDelay(100);
 	test++;
 	ReadSensorValues(currentSensor);
+//	printf("test2: %d\n", test2);
+//	printf("humidity: %d\n", (int)humidity);
+	sprintf(str, "%f", humidity);
+	HAL_UART_Transmit(&huart1, (uint8_t *)&str, sizeof(str), HAL_MAX_DELAY);
+//	PrintSensorValues(currentSensor);
   }
   /* USER CODE END 5 */
 }
@@ -547,9 +515,13 @@ void StartTask03(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(400);
-    PrintSensorValues(currentSensor);
+    osDelay(100);
+//    PrintSensorValues(currentSensor);
+//    PrintAllSensorValues();
+//    printf("hello me\n");
     test3++;
+//    printf("test2: %d\n", test2);
+//    printf("humidity: %d\n", (int)humidity);
   }
   /* USER CODE END StartTask03 */
 }
