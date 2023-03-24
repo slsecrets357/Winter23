@@ -4,91 +4,70 @@
 #include <ctime>   
 #include <cstdlib>  
 #include <cstdio>    
-#include <fstream>    
+#include <fstream>   
+#include <sstream> 
 
-struct Version {
-    int versionNumber;     
-    std::string hashValue;  
-    Version* next;      
-    std::string* content;
-    int numLines;
+class LinkedList {
+private:
+    struct Version {
+        int versionNumber;     
+        std::string hashValue;  
+        Version* next;      
+        std::string* content;
+        int numLines;
+    };
+    int totalVersions;
+    int versionIndex;
+    Version* head;
+public:
+    LinkedList() : totalVersions(0), versionIndex(0), head(nullptr) {}
+    ~LinkedList();
+    int add(std::string filename);
+    int getSize();
+    std::string getNodeValue(int index);
+    void removeVersion(int versionNumber);
+    void loadVersion(int version);
+    void print();
+    void compareVersions(int version1, int version2);
+    void searchVersions(std::string keyword);
+    std::string generateHash(std::string content);
+    std::size_t hash_it(std::string someString);
 };
-//global variables
-int totalVersions = 0; // version number
-int loadVersionNumber = 0;
-int versionIndex = 0; // version index
-Version* head = nullptr; // head of the linked list
-
-int add(std::string filename);
-void removeVersion(int versionNumber);
-void loadVersion(int version);
-void print();
-void compareVersions(int version1, int version2);
-void searchVersions(std::string keyword);
-std::string generateHash(std::string content);
-std::size_t hash_it(std::string someString);
-
-// main
-int main(){
-    std::string filename; // name of the file
-    char choice; // user choice
-    std::string keyword; // keyword to search for
-    std::string file = "file.txt";
-    std::cout << "Welcome to the Comp322 file versioning system!\n" << std::endl;
-    std::cout << "To add the content of your file to version control press 'a'" << std::endl;
-    std::cout << "To remove a version press 'r'" << std::endl;
-    std::cout << "To load a version press 'l'" << std::endl;
-    std::cout << "To print to the screen the detailed list of all versions press 'p'" << std::endl;
-    std::cout << "To compare any 2 versions press 'c'" << std::endl;
-    std::cout << "To search versions for a keyword press 's'" << std::endl;
-    std::cout << "To exit press 'e'\n" << std::endl;
-
-    do {
-        std::cin >> choice;
-        switch (choice){
-            case 'a':
-                add(file);
-                break;
-            case 'r':
-                std::cout << "Please enter the version number to delete:" << std::endl;
-                std::cin >> loadVersionNumber;
-                removeVersion(loadVersionNumber);
-                break;
-            case 'l':
-                std::cout << "Which version would you like to load?" << std::endl;
-                std::cin >> loadVersionNumber;
-                loadVersion(loadVersionNumber);
-                break;
-            case 'p':
-                print();
-                break;
-            case 'c':
-                std::cout << "Please enter the number of the first version to compare: " << std::endl;
-                std::cin >> loadVersionNumber;
-                int versionNumber2;
-                std::cout << "Please enter the number of the second version to compare: " << std::endl;
-                std::cin >> versionNumber2;
-                compareVersions(loadVersionNumber, versionNumber2);
-                break;
-            case 's':
-                std::cout << "Please enter the keyword that you are looking for:" << std::endl;
-                std::cin.ignore();
-                std::getline(std::cin, keyword);
-                searchVersions(keyword);
-                break;
-            case 'e':
-                std::cout << "Exiting the program..." << std::endl;
-                break;
-            default:
-                std::cout << "Invalid choice. Please try again." << std::endl;
-                break;
+//new functions
+LinkedList::~LinkedList() {
+    Version* current = head;
+    while (current != nullptr) {
+        Version* temp = current;
+        current = current->next;
+        delete[] temp->content;
+        delete temp;
+    }
+}
+int LinkedList::getSize() {
+    return totalVersions;
+}
+std::string LinkedList::getNodeValue(int index) {
+    if (index < 0 || index >= totalVersions) {
+        throw std::out_of_range("Index out of range");
+    }
+    Version* current = head;
+    int count = 0;
+    while (current != nullptr) {
+        if (count == index) {
+            std::stringstream contentStream;
+            for (int i = 0; i < current->numLines; i++) {
+                contentStream << current->content[i] << std::endl;
+            }
+            return contentStream.str();
         }
-    } while (choice != 'e');
-    return 0;
+        current = current->next;
+        count++;
+    }
+    throw std::out_of_range("Index out of range");
 }
 
-// function definitions
-int add(std::string filename){
+//old functions
+int LinkedList::add(std::string filename) {
     std::ifstream file(filename); // open the file
     // check if file exists
     if (!file.is_open()){ // check if the file is open
@@ -136,16 +115,16 @@ int add(std::string filename){
     return 0;
 }
 
-std::string generateHash(std::string content) {
-    // use the std::hash function to generate a hash value for the given string
+std::string LinkedList::generateHash(std::string content) {
     return std::to_string(std::hash<std::string>{}(content));
 }
-std::size_t hash_it(std::string someString) {
+
+std::size_t LinkedList::hash_it(std::string someString) {
     std::hash<std::string> hasher;
     return hasher(someString);
 }
 
-void removeVersion(int versionNumber){
+void LinkedList::removeVersion(int versionNumber) {
     Version* current = head;
     Version* previous = nullptr;
     while (current != nullptr){
@@ -166,7 +145,7 @@ void removeVersion(int versionNumber){
     std::cout << "Please enter a valid version number. If you are not sure please press 'p' to list all valid version numbers." << std::endl;
 }
 
-void loadVersion(int version){
+void LinkedList::loadVersion(int version) {
     Version* current = head;
     while (current != nullptr){
         if (current->versionNumber == version){
@@ -187,7 +166,7 @@ void loadVersion(int version){
     std::cout << "Please enter a valid version number. If you are not sure please press 'p' to list all valid version numbers." << std::endl;
 }
 
-void print(){
+void LinkedList::print() {
     Version* current = head;
     std::cout << "Number of versions: " << totalVersions << std::endl;
     current = head;
@@ -206,7 +185,7 @@ void print(){
     }
 }
 
-void compareVersions(int versionNumber1, int versionNumber2){
+void LinkedList::compareVersions(int versionNumber1, int versionNumber2) {
     Version* current = head;
     Version* version1 = nullptr;
     Version* version2 = nullptr;
@@ -246,7 +225,7 @@ void compareVersions(int versionNumber1, int versionNumber2){
     }
 }
 
-void searchVersions(std::string keyword){
+void LinkedList::searchVersions(std::string keyword) {
     Version* current = head;
     int found = 0;
     while (current != nullptr){ // loop through all the versions
@@ -279,9 +258,136 @@ void searchVersions(std::string keyword){
         current = current->next; // move to the next version
     }
     if(!found) std::cout << "Your keyword " << keyword<< " was not found in any version." << std::endl;
-
 }
 
+class Git322 {
+protected:
+    LinkedList myList;
 
+public:
+    Git322() {} // Default constructor, add any required setup here
 
+    void add(std::string filename) {
+        myList.add(filename);
+    }
 
+    void removeVersion(int versionNumber) {
+        myList.removeVersion(versionNumber);
+    }
+
+    void loadVersion(int version) {
+        myList.loadVersion(version);
+    }
+
+    void print() {
+        myList.print();
+    }
+
+    void compareVersions(int version1, int version2) {
+        myList.compareVersions(version1, version2);
+    }
+
+    void searchVersions(std::string keyword) {
+        myList.searchVersions(keyword);
+    }
+};
+
+class EnhancedGit322 : public Git322 {
+public:
+    EnhancedGit322() {
+        loadVersions();
+    }
+
+    ~EnhancedGit322() {
+        saveVersions();
+    }
+
+private:
+    void saveVersions() {
+        for (size_t i = 0; i < myList.getSize(); i++) {
+            std::string versionFilename = "version_" + std::to_string(i) + ".txt";
+            std::ofstream outFile(versionFilename);
+            outFile << myList.getNodeValue(i);
+            outFile.close();
+        }
+    }
+
+    void loadVersions() {
+        size_t versionIndex = 0;
+        while (true) {
+            std::string versionFilename = "version_" + std::to_string(versionIndex) + ".txt";
+            std::ifstream inFile(versionFilename);
+
+            if (!inFile) {
+                break;
+            }
+
+            std::stringstream buffer;
+            buffer << inFile.rdbuf();
+            std::string fileContent = buffer.str();
+            inFile.close();
+
+            // myList.addNode(fileContent);
+            versionIndex++;
+        }
+    }
+};
+
+int main() {
+    Git322 git; // Create a Git322 object
+    std::string file = "file.txt";
+    char choice;
+    std::string keyword;
+    int loadVersionNumber;
+    std::cout << "Welcome to the Comp322 file versioning system!\n" << std::endl;
+    std::cout << "To add the content of your file to version control press 'a'" << std::endl;
+    std::cout << "To remove a version press 'r'" << std::endl;
+    std::cout << "To load a version press 'l'" << std::endl;
+    std::cout << "To print to the screen the detailed list of all versions press 'p'" << std::endl;
+    std::cout << "To compare any 2 versions press 'c'" << std::endl;
+    std::cout << "To search versions for a keyword press 's'" << std::endl;
+    std::cout << "To exit press 'e'\n" << std::endl;
+
+    do {
+        std::cin >> choice;
+        switch (choice){
+            case 'a':
+                git.add(file);
+                break;
+            case 'r':
+                std::cout << "Please enter the version number to delete:" << std::endl;
+                std::cin >> loadVersionNumber;
+                git.removeVersion(loadVersionNumber);
+                break;
+            case 'l':
+                std::cout << "Which version would you like to load?" << std::endl;
+                std::cin >> loadVersionNumber;
+                git.loadVersion(loadVersionNumber);
+                break;
+            case 'p':
+                git.print();
+                break;
+            case 'c':
+                std::cout << "Please enter the number of the first version to compare: " << std::endl;
+                std::cin >> loadVersionNumber;
+                int versionNumber2;
+                std::cout << "Please enter the number of the second version to compare: " << std::endl;
+                std::cin >> versionNumber2;
+                git.compareVersions(loadVersionNumber, versionNumber2);
+                break;
+            case 's':
+                std::cout << "Please enter the keyword that you are looking for:" << std::endl;
+                std::cin.ignore();
+                std::getline(std::cin, keyword);
+                git.searchVersions(keyword);
+                break;
+            case 'e':
+                std::cout << "Exiting the program..." << std::endl;
+                break;
+            default:
+                std::cout << "Invalid choice. Please try again." << std::endl;
+                break;
+        }
+    } while (choice != 'e');
+    return 0;
+}
