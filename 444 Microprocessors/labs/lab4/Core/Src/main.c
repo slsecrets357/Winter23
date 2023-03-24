@@ -56,6 +56,7 @@ UART_HandleTypeDef huart1;
 osThreadId defaultTaskHandle;
 osThreadId myTask02Handle;
 osThreadId myTask03Handle;
+osThreadId myTask04Handle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -68,6 +69,7 @@ static void MX_USART1_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void StartTask02(void const * argument);
 void StartTask03(void const * argument);
+void StartTask04(void const * argument);
 
 /* USER CODE BEGIN PFP */
 #ifdef __GNUC__
@@ -89,7 +91,9 @@ char str[100];
 volatile int currentSensor = 0;
 int test, test2, test3;
 char prev = 0, status = 0;
-float humidity, magnetometer[3], gyroscope[3], pressure;
+float humidity, pressure, gyroscope[3];
+int16_t magnetometer[3];
+int h=0;
 
 //void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin){
 //	if(GPIO_Pin == mybutton_Pin){
@@ -106,6 +110,7 @@ void ReadSensorValues(int sensorIndex)
   {
     case 0: // Display humidity from HTS221
       humidity = BSP_HSENSOR_ReadHumidity();
+      h = (int) humidity;
       break;
 
     case 1: // Display magnetic field (X-axis) from LIS3MDL
@@ -129,7 +134,8 @@ void PrintSensorValues(int sensorIndex)
   switch (sensorIndex)
   {
     case 0: // Display humidity from HTS221
-      printf("Humidity: %d percent\n", (int)humidity);
+
+      printf("Humidity: %d percent\r\n", h);
       break;
 
     case 1: // Display magnetic field (X-axis) from LIS3MDL
@@ -232,16 +238,20 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 256);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of myTask02 */
-  osThreadDef(myTask02, StartTask02, osPriorityIdle, 0, 128);
+  osThreadDef(myTask02, StartTask02, osPriorityIdle, 0, 256);
   myTask02Handle = osThreadCreate(osThread(myTask02), NULL);
 
   /* definition and creation of myTask03 */
-  osThreadDef(myTask03, StartTask03, osPriorityIdle, 0, 128);
+  osThreadDef(myTask03, StartTask03, osPriorityIdle, 0, 256);
   myTask03Handle = osThreadCreate(osThread(myTask03), NULL);
+
+  /* definition and creation of myTask04 */
+//  osThreadDef(myTask04, StartTask04, osPriorityNormal, 0, 256);
+//  myTask04Handle = osThreadCreate(osThread(myTask04), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 //  /* add threads, ... */
@@ -261,8 +271,8 @@ int main(void)
 
 //	  ReadAllSensorValues();
 	  ReadSensorValues(currentSensor);
-//	  PrintSensorValues(currentSensor);
-	  PrintAllSensorValues();
+	  PrintSensorValues(currentSensor);
+//	  PrintAllSensorValues();
 	  HAL_Delay(100); // 10 Hz sampling rate (100 ms delay between reads)
   }
   /* USER CODE END 3 */
@@ -464,13 +474,13 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
 	osDelay(100);
-	test++;
+//	test++;
 	ReadSensorValues(currentSensor);
 //	printf("test2: %d\n", test2);
 //	printf("humidity: %d\n", (int)humidity);
-	sprintf(str, "%f", humidity);
-	HAL_UART_Transmit(&huart1, (uint8_t *)&str, sizeof(str), HAL_MAX_DELAY);
-//	PrintSensorValues(currentSensor);
+//	sprintf(str, "%f", humidity);
+//	HAL_UART_Transmit(&huart1, (uint8_t *)&str, sizeof(str), HAL_MAX_DELAY);
+	PrintSensorValues(currentSensor);
   }
   /* USER CODE END 5 */
 }
@@ -497,7 +507,7 @@ void StartTask02(void const * argument)
     		}
     		prev = status; // update previous status
     	}
-    test2 = (test2+1)%1000;
+//    test2 = (test2+1)%1000;
   }
   /* USER CODE END StartTask02 */
 }
@@ -516,14 +526,34 @@ void StartTask03(void const * argument)
   for(;;)
   {
     osDelay(100);
-//    PrintSensorValues(currentSensor);
+//	ReadSensorValues(currentSensor);
+    PrintSensorValues(currentSensor);
 //    PrintAllSensorValues();
 //    printf("hello me\n");
-    test3++;
+//    test3++;
 //    printf("test2: %d\n", test2);
 //    printf("humidity: %d\n", (int)humidity);
   }
   /* USER CODE END StartTask03 */
+}
+
+/* USER CODE BEGIN Header_StartTask04 */
+/**
+* @brief Function implementing the myTask04 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask04 */
+void StartTask04(void const * argument)
+{
+  /* USER CODE BEGIN StartTask04 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(100);
+    PrintSensorValues(currentSensor);
+  }
+  /* USER CODE END StartTask04 */
 }
 
 /**
