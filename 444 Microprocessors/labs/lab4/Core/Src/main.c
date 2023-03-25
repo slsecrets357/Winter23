@@ -28,7 +28,6 @@
 #include "stm32l4s5i_iot01_gyro.h"
 #include "stm32l4s5i_iot01_hsensor.h"
 #include "stm32l4s5i_iot01_magneto.h"
-//#include "stm32l4s5i_iot01_nfctag.h"
 #include "stm32l4s5i_iot01_psensor.h"
 #include <stdio.h>
 //#include "stm32l4s5i_iot01_qspi.h"
@@ -95,13 +94,14 @@ float humidity, pressure, gyroscope[3];
 int16_t magnetometer[3];
 int h=0;
 
-//void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin){
-//	if(GPIO_Pin == mybutton_Pin){
-//		HAL_GPIO_TogglePin(myled_GPIO_Port, myled_Pin); // Toggle LED
-//		currentSensor++;
-//	}
-//	if(currentSensor%4==0) currentSensor = 0;
-//}
+//for part 1
+void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin){
+	if(GPIO_Pin == mybutton_Pin){
+		HAL_GPIO_TogglePin(myled_GPIO_Port, myled_Pin); // Toggle LED
+		currentSensor++;
+	}
+	if(currentSensor%4==0) currentSensor = 0;
+}
 
 void ReadSensorValues(int sensorIndex)
 {
@@ -269,10 +269,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-//	  ReadAllSensorValues();
+	  // for part 1
 	  ReadSensorValues(currentSensor);
 	  PrintSensorValues(currentSensor);
-//	  PrintAllSensorValues();
 	  HAL_Delay(100); // 10 Hz sampling rate (100 ms delay between reads)
   }
   /* USER CODE END 3 */
@@ -474,12 +473,7 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
 	osDelay(100);
-//	test++;
 	ReadSensorValues(currentSensor);
-//	printf("test2: %d\n", test2);
-//	printf("humidity: %d\n", (int)humidity);
-//	sprintf(str, "%f", humidity);
-//	HAL_UART_Transmit(&huart1, (uint8_t *)&str, sizeof(str), HAL_MAX_DELAY);
 	PrintSensorValues(currentSensor);
   }
   /* USER CODE END 5 */
@@ -507,7 +501,6 @@ void StartTask02(void const * argument)
     		}
     		prev = status; // update previous status
     	}
-//    test2 = (test2+1)%1000;
   }
   /* USER CODE END StartTask02 */
 }
@@ -526,13 +519,7 @@ void StartTask03(void const * argument)
   for(;;)
   {
     osDelay(100);
-//	ReadSensorValues(currentSensor);
     PrintSensorValues(currentSensor);
-//    PrintAllSensorValues();
-//    printf("hello me\n");
-//    test3++;
-//    printf("test2: %d\n", test2);
-//    printf("humidity: %d\n", (int)humidity);
   }
   /* USER CODE END StartTask03 */
 }
