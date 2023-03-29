@@ -6,20 +6,22 @@
 #include <cstdio>    
 #include <fstream>   
 #include <sstream> 
+#include <filesystem>
+
 
 class LinkedList {
 private:
-    struct Version {
-        int versionNumber;     
-        std::string hashValue;  
-        Version* next;      
-        std::string* content;
-        int numLines;
-    };
     int totalVersions;
     int versionIndex;
-    Version* head;
 public:
+    struct Version {
+                int versionNumber;     
+                std::string hashValue;  
+                Version* next;      
+                std::string* content;
+                int numLines;
+            };
+    Version* head;
     LinkedList() : totalVersions(0), versionIndex(0), head(nullptr) {}
     ~LinkedList();
     int add(std::string filename);
@@ -45,25 +47,6 @@ LinkedList::~LinkedList() {
 }
 int LinkedList::getSize() {
     return totalVersions;
-}
-std::string LinkedList::getNodeValue(int index) {
-    if (index < 0 || index >= totalVersions) {
-        throw std::out_of_range("Index out of range");
-    }
-    Version* current = head;
-    int count = 0;
-    while (current != nullptr) {
-        if (count == index) {
-            std::stringstream contentStream;
-            for (int i = 0; i < current->numLines; i++) {
-                contentStream << current->content[i] << std::endl;
-            }
-            return contentStream.str();
-        }
-        current = current->next;
-        count++;
-    }
-    throw std::out_of_range("Index out of range");
 }
 
 //old functions
@@ -304,37 +287,53 @@ public:
 
 private:
     void saveVersions() {
-        for (size_t i = 0; i < myList.getSize(); i++) {
-            std::string versionFilename = "version_" + std::to_string(i) + ".txt";
-            std::ofstream outFile(versionFilename);
-            outFile << myList.getNodeValue(i);
+        LinkedList myList = this->myList;
+        LinkedList::Version *current = myList.head;
+        // print();
+        std::filesystem::path folderPath = "backing_store";
+        if (std::filesystem::exists(folderPath)) {
+            // Erase contents of the folder
+            for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+                std::filesystem::remove_all(entry.path());
+            }
+        } else {
+            // Create the folder
+            std::filesystem::create_directory(folderPath);
+        }
+        int counter = 1;
+        while(current != nullptr){
+            std::string versionFilename = "backing_store/version_" + std::to_string(counter++) + ".txt";
+            std::cout << "saving " << versionFilename << std::endl;
+            std::ofstream outFile(versionFilename); // Open the file
+            std::string *content = current->content; // get the content of the current version
+            while(*content != ""){ // loop through the lines of the current version
+                outFile << *content << std::endl; 
+                content++;
+            }
             outFile.close();
+            current = current->next;
         }
     }
 
     void loadVersions() {
-        size_t versionIndex = 0;
+        size_t versionIndex = 1;
         while (true) {
-            std::string versionFilename = "version_" + std::to_string(versionIndex) + ".txt";
-            std::ifstream inFile(versionFilename);
+            std::string versionFilename = "backing_store/version_" + std::to_string(versionIndex) + ".txt";
+            std::ifstream inFile(versionFilename); // Open the file
 
             if (!inFile) {
-                break;
+                break; // No more versions to load
             }
 
-            std::stringstream buffer;
-            buffer << inFile.rdbuf();
-            std::string fileContent = buffer.str();
-            inFile.close();
-
-            // myList.addNode(fileContent);
+            add(versionFilename);
+            std::cout << "loaded " << versionFilename << std::endl;
             versionIndex++;
         }
     }
 };
 
 int main() {
-    Git322 git; // Create a Git322 object
+    EnhancedGit322 git; // Create a Git322 object
     std::string file = "file.txt";
     char choice;
     std::string keyword;
@@ -383,6 +382,7 @@ int main() {
                 break;
             case 'e':
                 std::cout << "Exiting the program..." << std::endl;
+                // git.saveVersions();
                 break;
             default:
                 std::cout << "Invalid choice. Please try again." << std::endl;

@@ -70,6 +70,8 @@
         "iomanip": "cpp",
         "mutex": "cpp",
         "thread": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "xhash": "cpp",
+        "filesystem": "cpp"
     }
 }
