@@ -10,8 +10,8 @@ from torch.utils.data import TensorDataset, DataLoader, RandomSampler, Sequentia
 import string
 import re
 
-train_df = pd.read_csv('train_data.csv', encoding='utf-8')
-test_df = pd.read_csv('test_data.csv', encoding='utf-8')
+train_df = pd.read_csv('train_data.csv', encoding='utf-8').iloc[0:1000]
+test_df = pd.read_csv('test_data.csv', encoding='utf-8').iloc[0:1000]
 
 """
 Convert all text to lowercase to reduce the dimensionality 
@@ -102,7 +102,7 @@ model.to(device)
 
 # AdamW is a class from the huggingface library (as opposed to pytorch). It uses weight decay instead of L2 regularization.
 optimizer = AdamW(model.parameters(), lr=2e-5, eps=1e-8) # Default parameters and optimization algorithm
-num_epochs = 3
+num_epochs = 1
 total_steps = len(train_dataloader) * num_epochs
 # Create the learning rate scheduler. It is used to decrease the learning rate as the training progresses.
 scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=total_steps)
@@ -162,7 +162,7 @@ for epoch in range(num_epochs):
     print("-" * 10)
 
     train_epoch(model, train_dataloader, optimizer, scheduler, device)
-    val_accuracy = evaluate(model, val_dataloader, device)
+    val_accuracy, val_correct_indices, val_incorrect_indices = evaluate(model, val_dataloader, device)
 
     print(f"Validation accuracy: {val_accuracy:.4f}")
     
