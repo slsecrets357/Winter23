@@ -176,7 +176,7 @@ test_dataloader = DataLoader(test_dataset, sampler=SequentialSampler(test_datase
 test_accuracy, test_correct_indices, test_incorrect_indices = evaluate(model, test_dataloader, device)
 print(f"Test accuracy: {test_accuracy:.4f}")
     
-import matplotlib as plt
+import matplotlib.pyplot as plt
 def get_attention_matrix(model, input_ids, attention_masks, block_idx, head_idx, device):
     input_ids = input_ids.to(device)
     attention_masks = attention_masks.to(device)
