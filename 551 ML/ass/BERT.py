@@ -143,9 +143,18 @@ def evaluate(model, dataloader, device):
         logits = outputs.logits
         preds = torch.argmax(logits, dim=1).cpu().numpy()
         total_eval_accuracy += accuracy_score(labels.cpu().numpy(), preds)
+    
+    correct_indices = []
+    incorrect_indices = []
+
+    for i, (labels_np, preds) in enumerate(zip(labels.cpu().numpy(), preds)):
+        if labels_np == preds:
+            correct_indices.append(i)
+        else:
+            incorrect_indices.append(i)
 
     avg_val_accuracy = total_eval_accuracy / len(dataloader)
-    return avg_val_accuracy
+    return avg_val_accuracy, correct_indices, incorrect_indices
 
 # Train the model
 for epoch in range(num_epochs):
@@ -156,3 +165,42 @@ for epoch in range(num_epochs):
     val_accuracy = evaluate(model, val_dataloader, device)
 
     print(f"Validation accuracy: {val_accuracy:.4f}")
+    
+import matplotlib as plt
+def get_attention_matrix(model, input_ids, attention_masks, block_idx, head_idx):
+    model.eval()
+    with torch.no_grad():
+        outputs = model(input_ids, attention_mask=attention_masks)
+        attentions = outputs.attentions
+    attention_matrix = attentions[block_idx][0, head_idx].detach().cpu().numpy()
+    return attention_matrix
+def visualize_attention(input_id, attention_matrix):
+    tokens = tokenizer.convert_ids_to_tokens(input_id)
+    plt.imshow(attention_matrix, cmap="viridis")
+    plt.xticks(range(len(tokens)), tokens, rotation=90)
+    plt.yticks(range(len(tokens)), tokens)
+    plt.show()
+    
+block_idx = 0
+head_idx = 0
+num_examples = 5
+correct_examples = [val_input_ids[i] for i in val_correct_indices[:num_examples]]
+correct_attention_masks = [val_attention_masks[i] for i in val_correct_indices[:num_examples]]
+incorrect_examples = [val_input_ids[i] for i in val_incorrect_indices[:num_examples]]
+incorrect_attention_masks = [val_attention_masks[i] for i in val_incorrect_indices[:num_examples]]
+
+correct_attention_matrices = [
+    get_attention_matrix(model, input_id.unsqueeze(0), attention_mask.unsqueeze(0), block_idx, head_idx)
+    for input_id, attention_mask in zip(correct_examples, correct_attention_masks)
+]
+
+incorrect_attention_matrices = [
+    get_attention_matrix(model, input_id.unsqueeze(0), attention_mask.unsqueeze(0), block_idx, head_idx)
+    for input_id, attention_mask in zip(incorrect_examples, incorrect_attention_masks)
+]
+
+for input_id, attention_matrix in zip(correct_examples, correct_attention_matrices):
+    visualize_attention(input_id, attention_matrix)
+
+for input_id, attention_matrix in zip(incorrect_examples, incorrect_attention_matrices):
+    visualize_attention(input_id, attention_matrix)
