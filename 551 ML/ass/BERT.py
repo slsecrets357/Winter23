@@ -97,7 +97,7 @@ print("Validation dataloader size: ", len(val_dataloader))
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"device is {device}!!!")
 # Load BertForSequenceClassification, the pretrained BERT model with a single linear classification layer on top.
-model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2)
+model = BertForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=2, output_attentions=True)
 model.to(device)
 
 # AdamW is a class from the huggingface library (as opposed to pytorch). It uses weight decay instead of L2 regularization.
@@ -165,9 +165,21 @@ for epoch in range(num_epochs):
     val_accuracy, val_correct_indices, val_incorrect_indices = evaluate(model, val_dataloader, device)
 
     print(f"Validation accuracy: {val_accuracy:.4f}")
+
+test_texts = test_df['review']
+test_labels = test_df['sentiment']
+
+test_input_ids, test_attention_masks = encode_texts(test_texts)
+test_dataset = TensorDataset(test_input_ids, test_attention_masks, torch.tensor(test_labels.values))
+test_dataloader = DataLoader(test_dataset, sampler=SequentialSampler(test_dataset), batch_size=batch_size)
+
+test_accuracy, test_correct_indices, test_incorrect_indices = evaluate(model, test_dataloader, device)
+print(f"Test accuracy: {test_accuracy:.4f}")
     
 import matplotlib as plt
-def get_attention_matrix(model, input_ids, attention_masks, block_idx, head_idx):
+def get_attention_matrix(model, input_ids, attention_masks, block_idx, head_idx, device):
+    input_ids = input_ids.to(device)
+    attention_masks = attention_masks.to(device)
     model.eval()
     with torch.no_grad():
         outputs = model(input_ids, attention_mask=attention_masks)
@@ -190,12 +202,12 @@ incorrect_examples = [val_input_ids[i] for i in val_incorrect_indices[:num_examp
 incorrect_attention_masks = [val_attention_masks[i] for i in val_incorrect_indices[:num_examples]]
 
 correct_attention_matrices = [
-    get_attention_matrix(model, input_id.unsqueeze(0), attention_mask.unsqueeze(0), block_idx, head_idx)
+    get_attention_matrix(model, input_id.unsqueeze(0), attention_mask.unsqueeze(0), block_idx, head_idx, device)
     for input_id, attention_mask in zip(correct_examples, correct_attention_masks)
 ]
 
 incorrect_attention_matrices = [
-    get_attention_matrix(model, input_id.unsqueeze(0), attention_mask.unsqueeze(0), block_idx, head_idx)
+    get_attention_matrix(model, input_id.unsqueeze(0), attention_mask.unsqueeze(0), block_idx, head_idx, device)
     for input_id, attention_mask in zip(incorrect_examples, incorrect_attention_masks)
 ]
 
