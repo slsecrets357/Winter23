@@ -17,6 +17,7 @@ from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import CountVectorizer
 from multiprocessing import Pool, cpu_count
 from collections import defaultdict, Counter # For word counts
+from concurrent.futures import ThreadPoolExecutor
 
 # Define path to data
 # data_dir = "C:/Users/SLsec/Downloads/aclImdb/"
@@ -93,16 +94,16 @@ class NaiveBayes:
         self.word_counts = None # Dictionary of word counts
         self.vocabulary = None # Set of unique words
 
-    def fit(self, X, y):
+    def fit(self, X, y, alpha_val):
         t2 = time.time()
         print(f"Training the model... X: {X.shape}, y: {y.shape}")
         self.classes, class_counts = np.unique(y, return_counts=True) # Get the list of classes and their counts
         self.class_counts = dict(zip(self.classes, class_counts)) # key: class, value: count of class
-        print(f"Classes: {self.classes}")
+        # print(f"Classes: {self.classes}")
         self.vocabulary = set(word for review in X for word in review) # Get the set of unique words
-        print(f"Vocabulary size: {len(self.vocabulary)}")
+        # print(f"Vocabulary size: {len(self.vocabulary)}")
         self.word_counts = {c: {word: 0 for word in self.vocabulary} for c in self.classes}
-        print(f"Word counts: {self.word_counts}")
+        # print(f"Word counts: {self.word_counts}")
 
         # Count the number of times each word appears in each class. Zip returns an iterator of tuples
         for x, label in zip(X, y): 
@@ -116,7 +117,7 @@ class NaiveBayes:
             self.log_priors[c] = np.log(self.class_counts[c] / sum(self.class_counts.values()))
             total_words = sum(self.word_counts[c].values()) + len(self.vocabulary)
             for word in self.vocabulary:
-                word_count = self.word_counts[c][word] + 1  # Additive (Laplace) smoothing
+                word_count = self.word_counts[c][word] + alpha_val  # Additive (Laplace) smoothing
                 self.log_word_probs[c][word] = np.log(word_count / total_words)
         print("done training model!! :D")
         print("training time: ", time.time()-t2)
@@ -137,30 +138,76 @@ class NaiveBayes:
                 probabilities.append(log_prob)
             predictions.append(self.classes[np.argmax(probabilities)])
             i+=1
-            if i%1000 == 0:
+            if i%10000 == 0:
                 print(str(i)+") probabilities: ", probabilities, "time: ", time.time()-t1)
         return predictions
     
     def evaluate_acc(self, y_true, y_pred):
-        correct = sum(y_true == y_pred)
-        total = len(y_true)
-        return correct / total
-    
-# Train the model
-X_train = train_df['review'].values
-y_train = train_df['sentiment'].values
-X_test = test_df['review'].values
-y_test = test_df['sentiment'].values
+        # correct = sum(y_true == y_pred)
+        # total = len(y_true)
+        # return correct / total
+        # if type(y_pred) != np.ndarray:
+        if not isinstance(y_pred, np.ndarray):
+          y_pred = np.array(y_pred)
+        tp = sum((y_true == 1) & (y_pred == 1))
+        fp = sum((y_true == 0) & (y_pred == 1))
+        tn = sum((y_true == 0) & (y_pred == 0))
+        fn = sum((y_true == 1) & (y_pred == 0))
 
-nb_classifier = NaiveBayes()
-nb_classifier.fit(X_train, y_train)
+        accuracy = (tp + tn)/(tp + tn + fp + fn)
+        precision = tp / (tp + fp)
+        recall = tp / (tp + fn)
+        f1_score = 2 * (precision * recall) / (precision + recall)
 
-# Make predictions
-num = 25000
-t1 = time.time()
-y_pred = nb_classifier.predict(X_test[:num])
-print("prediction time: ", time.time()-t1)
+        return accuracy, precision, recall, f1_score
 
-# Evaluate the model
-accuracy = nb_classifier.evaluate_acc(y_test[:num], y_pred)
-print("Accuracy:", accuracy)
+def train_evaluate_alpha(alpha_value):
+    X_train = train_df['review'].values
+    y_train = train_df['sentiment'].values
+    X_test = test_df['review'].values
+    y_test = test_df['sentiment'].values
+
+    nb_classifier = NaiveBayes()
+    nb_classifier.fit(X_train, y_train, alpha_value)
+
+    num = 25000
+    y_pred = nb_classifier.predict(X_test[:num])
+
+    accuracy, precision, recall, f1_score = nb_classifier.evaluate_acc(y_test[:num], y_pred)
+    print("Alpha: %d, Accuracy: %.4f, Precision: %.4f, Recall: %.4f, F1_score: %.4f" % (alpha_value, accuracy, precision, recall, f1_score))
+    return [accuracy, precision, recall, f1_score]
+ 
+alpha_values = np.arange(20) * 10
+
+with ThreadPoolExecutor() as executor:
+    results = list(executor.map(train_evaluate_alpha, alpha_values))
+
+# extract accuracy scores
+accuracies = [result[0] for result in results]
+Precisions = [result[1] for result in results]
+Recalls = [result[2] for result in results]
+F1_scores = [result[3] for result in results]
+# plot accuracy scores
+plt.plot(alpha_values, accuracies)
+plt.xlabel('alpha values')
+plt.ylabel('accuracy')
+plt.title('Accuracy Scores vs. Alpha Values')
+plt.show()
+
+plt.plot(alpha_values,Precisions)
+plt.xlabel('alpha values')
+plt.ylabel('Precision')
+plt.title('Precision Scores vs. Alpha Values')
+plt.show()
+
+plt.plot(alpha_values, Recalls)
+plt.xlabel('alpha values')
+plt.ylabel('Recall')
+plt.title('Recall Scores vs. Alpha Values')
+plt.show()
+
+plt.plot(alpha_values, F1_scores)
+plt.xlabel('alpha values')
+plt.ylabel('accuracy')
+plt.title('f1_score Scores vs. Alpha Values')
+plt.show()
